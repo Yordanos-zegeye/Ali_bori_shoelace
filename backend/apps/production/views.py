@@ -174,19 +174,32 @@ class ProductionBatchViewSet(viewsets.ModelViewSet):
                 issued_quantity=raw_yarn_input,
                 unit='KG'
             )
-            # Deduct from RawMaterialStock & log transaction
-            stock = RawMaterialStock.objects.filter(variant_id=yarn_id).first()
-            if stock:
-                stock.available_kg = max(Decimal('0.00'), stock.available_kg - raw_yarn_input)
-                stock.save()
-                RawMaterialInventoryTransaction.objects.create(
-                    variant_id=yarn_id,
-                    transaction_type=RawMaterialInventoryTransaction.TransactionType.PRODUCTION_CONSUMPTION,
-                    quantity_kg=-raw_yarn_input,
-                    balance_after_kg=stock.available_kg,
-                    reference_batch_number=batch.batch_number,
-                    notes=f"Issued for production run {batch.batch_number} ({stock_req.request_number})"
-                )
+            # Deduct from RawMaterialStock across records with available stock & log transaction
+            remaining_to_deduct = raw_yarn_input
+            stocks_to_deduct = list(RawMaterialStock.objects.filter(variant_id=yarn_id, available_kg__gt=0).order_by('-available_kg'))
+            for st in stocks_to_deduct:
+                if remaining_to_deduct <= Decimal('0.00'):
+                    break
+                deduct_amt = min(st.available_kg, remaining_to_deduct)
+                st.available_kg -= deduct_amt
+                st.save()
+                remaining_to_deduct -= deduct_amt
+
+            if remaining_to_deduct > Decimal('0.00'):
+                first_st = RawMaterialStock.objects.filter(variant_id=yarn_id).first()
+                if first_st:
+                    first_st.available_kg = max(Decimal('0.00'), first_st.available_kg - remaining_to_deduct)
+                    first_st.save()
+
+            total_yarn_after = sum(s.available_kg for s in RawMaterialStock.objects.filter(variant_id=yarn_id))
+            RawMaterialInventoryTransaction.objects.create(
+                variant_id=yarn_id,
+                transaction_type=RawMaterialInventoryTransaction.TransactionType.PRODUCTION_CONSUMPTION,
+                quantity_kg=-raw_yarn_input,
+                balance_after_kg=total_yarn_after,
+                reference_batch_number=batch.batch_number,
+                notes=f"Issued for production run {batch.batch_number} ({stock_req.request_number})"
+            )
 
         if acetone_qty > Decimal('0.00'):
             acetone_var = RawMaterialVariant.objects.filter(material_type__name__icontains='Acetone').first()
@@ -209,6 +222,23 @@ class ProductionBatchViewSet(viewsets.ModelViewSet):
                     issued_quantity=acetone_qty,
                     unit='Liters'
                 )
+                rem_acetone = acetone_qty
+                for a_st in RawMaterialStock.objects.filter(variant=acetone_var, available_kg__gt=0).order_by('-available_kg'):
+                    if rem_acetone <= Decimal('0.00'):
+                        break
+                    d_amt = min(a_st.available_kg, rem_acetone)
+                    a_st.available_kg -= d_amt
+                    a_st.save()
+                    rem_acetone -= d_amt
+                total_acetone_after = sum(s.available_kg for s in RawMaterialStock.objects.filter(variant=acetone_var))
+                RawMaterialInventoryTransaction.objects.create(
+                    variant=acetone_var,
+                    transaction_type=RawMaterialInventoryTransaction.TransactionType.PRODUCTION_CONSUMPTION,
+                    quantity_kg=-acetone_qty,
+                    balance_after_kg=total_acetone_after,
+                    reference_batch_number=batch.batch_number,
+                    notes=f"Acetone Solvent for production run {batch.batch_number}"
+                )
 
         if film_id and film_qty > Decimal('0.00'):
             ProductionBatchMaterial.objects.create(
@@ -228,6 +258,23 @@ class ProductionBatchViewSet(viewsets.ModelViewSet):
                 approved_quantity=film_qty,
                 issued_quantity=film_qty,
                 unit='Rolls'
+            )
+            rem_film = film_qty
+            for f_st in RawMaterialStock.objects.filter(variant_id=film_id, available_kg__gt=0).order_by('-available_kg'):
+                if rem_film <= Decimal('0.00'):
+                    break
+                d_amt = min(f_st.available_kg, rem_film)
+                f_st.available_kg -= d_amt
+                f_st.save()
+                rem_film -= d_amt
+            total_film_after = sum(s.available_kg for s in RawMaterialStock.objects.filter(variant_id=film_id))
+            RawMaterialInventoryTransaction.objects.create(
+                variant_id=film_id,
+                transaction_type=RawMaterialInventoryTransaction.TransactionType.PRODUCTION_CONSUMPTION,
+                quantity_kg=-film_qty,
+                balance_after_kg=total_film_after,
+                reference_batch_number=batch.batch_number,
+                notes=f"Film Roll for production run {batch.batch_number}"
             )
 
         return Response(ProductionBatchSerializer(batch).data, status=status.HTTP_201_CREATED)

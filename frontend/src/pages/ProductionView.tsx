@@ -85,6 +85,31 @@ export const ProductionView: React.FC = () => {
     return list.length > 0 ? list : rawMaterials;
   }, [rawMaterials]);
 
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockLastRefreshed, setStockLastRefreshed] = useState<Date | null>(null);
+
+  // Dedicated function to fetch live warehouse stock for raw materials and products
+  const fetchFreshStock = async () => {
+    try {
+      setStockLoading(true);
+      const [variantsRes, rawRes] = await Promise.all([
+        api.get<any>('/catalog/variants/'),
+        api.get<any>('/inventory/variants/')
+      ]);
+      const vars = variantsRes.results || variantsRes;
+      const rawList = rawRes.results || rawRes;
+      setVariants(vars);
+      setRawMaterials(rawList);
+      setStockLastRefreshed(new Date());
+      return { vars, rawList };
+    } catch (err) {
+      console.error('Failed to refresh warehouse stock', err);
+      return null;
+    } finally {
+      setStockLoading(false);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -94,9 +119,11 @@ export const ProductionView: React.FC = () => {
         api.get<any>('/inventory/variants/')
       ]);
       setBatches(batchesRes.results || batchesRes);
-      setVariants(variantsRes.results || variantsRes);
+      const vars = variantsRes.results || variantsRes;
+      setVariants(vars);
       const rawList = rawRes.results || rawRes;
       setRawMaterials(rawList);
+      setStockLastRefreshed(new Date());
 
       // Pre-select first yarn & film roll for modal convenience
       if (rawList.length > 0) {
@@ -119,11 +146,125 @@ export const ProductionView: React.FC = () => {
     fetchData();
   }, []);
 
-  // Selected yarn stock preview in create form
+  // Open Step 1 Modal and immediately fetch fresh warehouse stock
+  const handleOpenCreateModal = async () => {
+    setActionError(null);
+    setShowCreateModal(true);
+    const fresh = await fetchFreshStock();
+    if (fresh) {
+      const { vars, rawList } = fresh;
+      const yList = rawList.filter((rm: any) => rm.material_type_name?.toLowerCase().includes('yarn'));
+      const fList = rawList.filter((rm: any) => rm.material_type_name?.toLowerCase().includes('film'));
+
+      setNewBatch(prev => {
+        let matchedYarnId = prev.raw_material_yarn;
+        let matchedFilmId = prev.film_roll_variant;
+        const prod = vars.find((v: any) => String(v.id) === String(prev.product_variant));
+
+        if (prod) {
+          const colorName = (prod.color_details?.name || '').toLowerCase();
+          const colorCode = (prod.color_details?.code || '').toLowerCase();
+          const matchedYarn = yList.find((y: any) => {
+            const yCol = (y.color_name || '').toLowerCase();
+            return yCol === colorName || (colorCode && yCol.startsWith(colorCode)) || (colorName && yCol.includes(colorName));
+          });
+          if (matchedYarn) matchedYarnId = String(matchedYarn.id);
+
+          const matchedFilm = fList.find((f: any) => {
+            const fCol = (f.color_name || '').toLowerCase();
+            return fCol === colorName || (colorName && fCol.includes(colorName));
+          });
+          if (matchedFilm) matchedFilmId = String(matchedFilm.id);
+        } else if (!matchedYarnId && yList.length > 0) {
+          // Default to yarn with highest available stock
+          const sorted = [...yList].sort((a: any, b: any) => parseFloat(b.total_available_kg || 0) - parseFloat(a.total_available_kg || 0));
+          matchedYarnId = String(sorted[0].id);
+        }
+
+        if (!matchedFilmId && fList.length > 0) {
+          matchedFilmId = String(fList[0].id);
+        }
+
+        return {
+          ...prev,
+          raw_material_yarn: matchedYarnId,
+          film_roll_variant: matchedFilmId
+        };
+      });
+    }
+  };
+
+  // When a product variant is selected, auto-match the corresponding raw yarn & film roll by color
+  const handleSelectProduct = (productId: string) => {
+    const prod = variants.find(v => String(v.id) === String(productId));
+    let matchedYarnId = newBatch.raw_material_yarn;
+    let matchedFilmId = newBatch.film_roll_variant;
+
+    if (prod) {
+      const colorName = (prod.color_details?.name || '').toLowerCase();
+      const colorCode = (prod.color_details?.code || '').toLowerCase();
+
+      const matchedYarn = yarnVariants.find(y => {
+        const yCol = (y.color_name || '').toLowerCase();
+        return yCol === colorName || (colorCode && yCol.startsWith(colorCode)) || (colorName && yCol.includes(colorName));
+      });
+      if (matchedYarn) {
+        matchedYarnId = String(matchedYarn.id);
+      }
+
+      const matchedFilm = filmVariants.find(f => {
+        const fCol = (f.color_name || '').toLowerCase();
+        return fCol === colorName || (colorName && fCol.includes(colorName));
+      });
+      if (matchedFilm) {
+        matchedFilmId = String(matchedFilm.id);
+      }
+    }
+
+    setNewBatch(prev => ({
+      ...prev,
+      product_variant: productId,
+      raw_material_yarn: matchedYarnId,
+      film_roll_variant: matchedFilmId
+    }));
+  };
+
+  // Computed live stock previews in create form
+  const selectedProduct = useMemo(() => {
+    if (!newBatch.product_variant) return null;
+    return variants.find(v => String(v.id) === String(newBatch.product_variant)) || null;
+  }, [newBatch.product_variant, variants]);
+
   const selectedYarnStock = useMemo(() => {
     if (!newBatch.raw_material_yarn) return null;
-    return rawMaterials.find(r => String(r.id) === String(newBatch.raw_material_yarn));
+    return rawMaterials.find(r => String(r.id) === String(newBatch.raw_material_yarn)) || null;
   }, [newBatch.raw_material_yarn, rawMaterials]);
+
+  const selectedFilmStock = useMemo(() => {
+    if (!newBatch.film_roll_variant) return null;
+    return rawMaterials.find(r => String(r.id) === String(newBatch.film_roll_variant)) || null;
+  }, [newBatch.film_roll_variant, rawMaterials]);
+
+  const acetoneStock = useMemo(() => {
+    return rawMaterials.find(r => r.material_type_name?.toLowerCase().includes('acetone')) || null;
+  }, [rawMaterials]);
+
+  const yarnAvailableKg = useMemo(() => {
+    if (!selectedYarnStock) return 0;
+    return parseFloat(String(selectedYarnStock.total_available_kg || 0));
+  }, [selectedYarnStock]);
+
+  const yarnRequestedKg = useMemo(() => {
+    return parseFloat(newBatch.raw_yarn_input_kg || '0');
+  }, [newBatch.raw_yarn_input_kg]);
+
+  const isYarnStockSufficient = useMemo(() => {
+    return yarnAvailableKg >= yarnRequestedKg && yarnAvailableKg > 0;
+  }, [yarnAvailableKg, yarnRequestedKg]);
+
+  const yarnStockShortage = useMemo(() => {
+    return Math.max(0, yarnRequestedKg - yarnAvailableKg);
+  }, [yarnAvailableKg, yarnRequestedKg]);
 
   // Open Edit Modal & Populate Form
   const handleOpenEdit = (batch: ProductionBatch) => {
@@ -487,10 +628,7 @@ export const ProductionView: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-factory-amber' : ''}`} />
           </button>
           <button
-            onClick={() => {
-              setActionError(null);
-              setShowCreateModal(true);
-            }}
+            onClick={handleOpenCreateModal}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -665,10 +803,7 @@ export const ProductionView: React.FC = () => {
                         Click the button below to start your first batch, request raw materials from the store, and track it through all 3 stages.
                       </p>
                       <button
-                        onClick={() => {
-                          setActionError(null);
-                          setShowCreateModal(true);
-                        }}
+                        onClick={handleOpenCreateModal}
                         className="px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-xs font-semibold shadow cursor-pointer inline-flex items-center gap-1.5"
                       >
                         <Plus className="w-4 h-4" />
@@ -945,15 +1080,42 @@ export const ProductionView: React.FC = () => {
                   Step 1: Start Production Run & Request Raw Materials
                 </h2>
                 <p className="text-[11px] text-factory-muted mt-0.5">
-                  Prepares the batch and officially allocates raw materials from the factory warehouse.
+                  Prepares the batch and automatically fetches live stock from the warehouse.
                 </p>
               </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchFreshStock}
+                  disabled={stockLoading}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-factory-darkBorder bg-factory-dark hover:bg-factory-darkCard text-factory-muted hover:text-factory-paper text-[11px] transition-colors cursor-pointer"
+                  title="Re-check live warehouse inventory"
+                >
+                  <RefreshCw className={`w-3 h-3 ${stockLoading ? 'animate-spin text-factory-amber' : ''}`} />
+                  <span>{stockLoading ? 'Fetching Stock...' : 'Refresh Stock'}</span>
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Live Warehouse Sync Status Banner */}
+            <div className="px-3 py-1.5 rounded-lg bg-factory-dark/90 border border-factory-darkBorder/70 text-[11px] flex items-center justify-between text-factory-muted">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${stockLoading ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                <span className="text-factory-cream font-medium">
+                  {stockLoading ? 'Syncing warehouse inventory...' : 'Live Warehouse Stock Connected'}
+                </span>
+              </span>
+              {stockLastRefreshed && (
+                <span className="font-mono text-[10px]">
+                  Refreshed {stockLastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
             </div>
 
             {actionError && (
@@ -966,10 +1128,17 @@ export const ProductionView: React.FC = () => {
             <form onSubmit={handleCreateBatch} className="space-y-4 text-xs">
               {/* Shoe Lace Product */}
               <div>
-                <label className="block text-factory-muted mb-1 font-medium">Shoe Lace Product to Produce *</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-factory-muted font-medium">Shoe Lace Product to Produce *</label>
+                  {selectedProduct && (
+                    <span className="text-[10px] text-factory-muted font-mono">
+                      Current Store: <strong className="text-emerald-400">{parseFloat(String(selectedProduct.stock?.calculated_stock || selectedProduct.stock?.total || '0')).toFixed(2)} KG</strong>
+                    </span>
+                  )}
+                </div>
                 <select
                   value={newBatch.product_variant}
-                  onChange={(e) => setNewBatch({ ...newBatch, product_variant: e.target.value })}
+                  onChange={(e) => handleSelectProduct(e.target.value)}
                   className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
                   required
                 >
@@ -980,6 +1149,24 @@ export const ProductionView: React.FC = () => {
                     </option>
                   ))}
                 </select>
+
+                {selectedProduct && (
+                  <div className="flex flex-wrap items-center justify-between mt-1.5 px-3 py-2 rounded-lg bg-factory-dark/80 border border-factory-darkBorder text-[11px] gap-2">
+                    <div className="flex items-center gap-1.5 text-factory-cream">
+                      <Package className="w-3.5 h-3.5 text-factory-amber" />
+                      <span>Store Stock:</span>
+                      <span className="font-semibold font-mono text-emerald-400">
+                        {parseFloat(String(selectedProduct.stock?.calculated_stock || selectedProduct.stock?.total || '0')).toFixed(2)} KG
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-factory-muted">
+                      <span>Color: <strong className="text-factory-paper">{selectedProduct.color_details?.name || 'Standard'}</strong></span>
+                      <span className="text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                        ✓ Auto-matched Yarn & Film
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Raw Material Selection: Yarn (Standard 32 KG Batches) */}
@@ -990,8 +1177,12 @@ export const ProductionView: React.FC = () => {
                     1. Raw Yarn Request (Standard 32 KG Batches)
                   </label>
                   {selectedYarnStock && (
-                    <span className="text-[10px] text-factory-muted font-mono">
-                      In Store: <span className="text-emerald-400 font-semibold">{selectedYarnStock.total_available_kg} KG</span>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                      yarnAvailableKg > 0 
+                        ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40' 
+                        : 'bg-red-950/40 text-red-300 border-red-800/40'
+                    }`}>
+                      Store Stock: <strong className="font-bold">{yarnAvailableKg.toFixed(2)} KG</strong>
                     </span>
                   )}
                 </div>
@@ -1005,13 +1196,66 @@ export const ProductionView: React.FC = () => {
                     required
                   >
                     <option value="">-- Choose Yarn --</option>
-                    {yarnVariants.map((y) => (
-                      <option key={y.id} value={y.id}>
-                        {y.material_type_name} - {y.color_name} ({y.total_available_kg} KG in stock)
-                      </option>
-                    ))}
+                    {yarnVariants.map((y) => {
+                      const avail = parseFloat(String(y.total_available_kg || 0));
+                      return (
+                        <option key={y.id} value={y.id}>
+                          {y.material_type_name} - {y.color_name} ({avail.toFixed(1)} KG available in store)
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
+
+                {/* Warehouse Stock Availability Preview Card */}
+                {selectedYarnStock && (
+                  <div className={`p-3 rounded-lg border text-xs space-y-2.5 transition-all ${
+                    isYarnStockSufficient 
+                      ? 'bg-emerald-950/20 border-emerald-500/30' 
+                      : 'bg-amber-950/25 border-amber-500/40'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-factory-paper flex items-center gap-1.5">
+                        <Warehouse className="w-3.5 h-3.5 text-factory-amber" />
+                        Store Availability: {selectedYarnStock.color_name} Polyester Yarn
+                      </span>
+                      <span className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
+                        yarnAvailableKg > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                      }`}>
+                        {yarnAvailableKg.toFixed(2)} KG Available
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                      <div className="bg-factory-dark/70 p-2 rounded border border-factory-darkBorder/60">
+                        <div className="text-[10px] text-factory-muted">Available in Store</div>
+                        <div className="font-mono font-bold text-emerald-400 mt-0.5">{yarnAvailableKg.toFixed(1)} KG</div>
+                      </div>
+                      <div className="bg-factory-dark/70 p-2 rounded border border-factory-darkBorder/60">
+                        <div className="text-[10px] text-factory-muted">Required ({newBatch.yarn_batch_count}b)</div>
+                        <div className="font-mono font-bold text-factory-paper mt-0.5">{yarnRequestedKg.toFixed(1)} KG</div>
+                      </div>
+                      <div className="bg-factory-dark/70 p-2 rounded border border-factory-darkBorder/60">
+                        <div className="text-[10px] text-factory-muted">Balance After</div>
+                        <div className={`font-mono font-bold mt-0.5 ${yarnAvailableKg >= yarnRequestedKg ? 'text-blue-400' : 'text-factory-crimson'}`}>
+                          {(yarnAvailableKg - yarnRequestedKg).toFixed(1)} KG
+                        </div>
+                      </div>
+                    </div>
+
+                    {!isYarnStockSufficient && (
+                      <div className="flex items-start gap-2 text-[11px] text-amber-200 bg-amber-950/60 p-2.5 rounded-lg border border-amber-600/40">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="font-semibold block text-amber-300">Insufficient Warehouse Stock:</strong>
+                          <span>
+                            Only {yarnAvailableKg.toFixed(1)} KG available in store, but {yarnRequestedKg.toFixed(1)} KG is required for {newBatch.yarn_batch_count} {newBatch.yarn_batch_count === 1 ? 'batch' : 'batches'} (Deficit: {yarnStockShortage.toFixed(1)} KG). Please reduce batches or add new yarn stock in Raw Materials.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* 32 KG Batch Standard Selector */}
                 <div className="p-3 bg-factory-dark rounded-lg border border-factory-amber/30 space-y-2">
@@ -1132,13 +1376,25 @@ export const ProductionView: React.FC = () => {
 
               {/* Raw Material Selection: Acetone & Film Roll */}
               <div className="bg-factory-dark/60 p-3.5 rounded-lg border border-factory-darkBorder space-y-2.5">
-                <span className="text-blue-400 font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                  <Droplets className="w-3.5 h-3.5" />
-                  2. Tipping Materials Request (Step 2 Aglets)
+                <span className="text-blue-400 font-semibold flex items-center justify-between uppercase tracking-wider text-[11px]">
+                  <div className="flex items-center gap-1.5">
+                    <Droplets className="w-3.5 h-3.5" />
+                    2. Tipping Materials Request (Step 2 Aglets)
+                  </div>
+                  <span className="text-[10px] text-factory-muted normal-case font-normal">
+                    Plastic film & acetone for shoelace tips
+                  </span>
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-factory-muted mb-1 font-medium">Acetone Solvent (Liters)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-factory-muted font-medium">Acetone Solvent (Liters)</label>
+                      {acetoneStock && (
+                        <span className="text-[10px] font-mono text-emerald-400">
+                          Store: {parseFloat(String(acetoneStock.total_available_kg || 0)).toFixed(1)} L
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="number"
                       step="0.01"
@@ -1150,18 +1406,28 @@ export const ProductionView: React.FC = () => {
                     <span className="text-[10px] text-factory-muted mt-0.5 block">Solvent for tipping machine</span>
                   </div>
                   <div>
-                    <label className="block text-factory-muted mb-1 font-medium">Film Roll (Plastic Wrap)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-factory-muted font-medium">Film Roll (Plastic Wrap)</label>
+                      {selectedFilmStock && (
+                        <span className="text-[10px] font-mono text-emerald-400">
+                          Store: {parseFloat(String(selectedFilmStock.total_available_kg || 0)).toFixed(0)} rolls
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={newBatch.film_roll_variant}
                       onChange={(e) => setNewBatch({ ...newBatch, film_roll_variant: e.target.value })}
                       className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1 text-factory-paper mb-1 focus:outline-none focus:border-factory-amber"
                     >
                       <option value="">-- Choose Film Roll --</option>
-                      {filmVariants.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.color_name}
-                        </option>
-                      ))}
+                      {filmVariants.map((f) => {
+                        const rAvail = parseFloat(String(f.total_available_kg || 0));
+                        return (
+                          <option key={f.id} value={f.id}>
+                            {f.color_name} ({rAvail.toFixed(0)} rolls in store)
+                          </option>
+                        );
+                      })}
                     </select>
                     <div className="flex items-center gap-1 mt-1">
                       <input

@@ -4,7 +4,7 @@ Django settings for Ali Bori Shoe Lace Factory ERP.
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs,parse_qsl
+from urllib.parse import urlparse,parse_qsl
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
