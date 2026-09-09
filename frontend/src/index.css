@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root, [data-theme="dark"] {
+  font-family: 'Inter', sans-serif;
+  color-scheme: dark;
+
+  /* Industrial Espresso & Golden Amber Theme (Dark) */
+  --factory-dark: 20, 10, 5;              /* #140A05 (Espresso page background) */
+  --factory-dark-card: 30, 19, 13;        /* #1E130D (Deep wood card) */
+  --factory-dark-border: 54, 36, 24;      /* #362418 (Deep border) */
+  --factory-primary: 139, 70, 30;         /* #8B461E (Leather rust) */
+  --factory-primary-hover: 115, 55, 22;   /* #733716 */
+  --factory-secondary: 200, 122, 56;      /* #C87A38 (Golden braided amber) */
+  --factory-secondary-hover: 178, 103, 43;/* #B2672B */
+  --factory-canvas: 42, 26, 18;           /* #2A1A12 */
+  --factory-cream: 250, 248, 245;         /* #FAF8F5 (High-contrast bright text) */
+  --factory-cream-card: 38, 24, 16;       /* #261810 */
+  --factory-crimson: 139, 40, 40;         /* #8B2828 (Critical alerts) */
+  --factory-slate: 62, 71, 74;            /* #3E474A */
+  --factory-muted: 158, 140, 130;         /* #9E8C82 (Muted warm text) */
+  --factory-paper: 250, 248, 245;         /* #FAF8F5 (Body text) */
+  --factory-paper-light: 255, 255, 255;
+  --factory-amber: 200, 122, 56;          /* #C87A38 */
+  --factory-amber-dark: 168, 93, 34;
+  --factory-rust: 139, 70, 30;            /* #8B461E */
+  --factory-rust-light: 162, 84, 36;
+}
+
+[data-theme="light"] {
+  font-family: 'Inter', sans-serif;
+  color-scheme: light;
+
+  /* Artisanal Warm Canvas & Leather Amber Theme (Light) */
+  --factory-dark: 246, 243, 237;          /* #F6F3ED (Warm factory parchment page background) */
+  --factory-dark-card: 255, 255, 255;     /* #FFFFFF (Pure crisp white card with warm lift) */
+  --factory-dark-border: 228, 219, 206;   /* #E4DBCB (Artisanal warm parchment border) */
+  --factory-primary: 139, 70, 30;         /* #8B461E (Rich leather rust primary) */
+  --factory-primary-hover: 111, 51, 18;   /* #6F3312 */
+  --factory-secondary: 182, 99, 31;       /* #B6631F (Vibrant deep amber with WCAG contrast) */
+  --factory-secondary-hover: 150, 77, 18; /* #964D12 */
+  --factory-canvas: 237, 230, 220;        /* #EDE6DC (Oatmeal badge canvas) */
+  --factory-cream: 24, 16, 10;            /* #18100A (Deep espresso headings and key metrics) */
+  --factory-cream-card: 248, 245, 239;    /* #F8F5EF (Soft warm secondary card background) */
+  --factory-crimson: 185, 28, 28;         /* #B91C1C (Vivid red alert) */
+  --factory-slate: 75, 85, 99;            /* #4B5563 (Charcoal slate) */
+  --factory-muted: 104, 88, 77;           /* #68584D (Mocha grey - legible labels & headers) */
+  --factory-paper: 24, 16, 10;            /* #18100A (Deep espresso body text) */
+  --factory-paper-light: 0, 0, 0;
+  --factory-amber: 182, 99, 31;           /* #B6631F */
+  --factory-amber-dark: 143, 73, 16;
+  --factory-rust: 139, 70, 30;            /* #8B461E */
+  --factory-rust-light: 162, 84, 36;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--factory-dark));
+  color: rgb(var(--factory-paper));
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light theme card shadows */
+[data-theme="light"] .bg-factory-darkCard {
+  box-shadow: 0 1px 3px 0 rgba(40, 25, 15, 0.05), 0 1px 2px -1px rgba(40, 25, 15, 0.05);
+}
+
+/* Custom scrollbar for industrial dense tables */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #1E130D;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #4A3324;
+  border-radius: 4px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #642D0F;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #F4EFEA;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #D5C9B8;
+  border-radius: 4px;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #B8A692;
+}
+
+/* Dense table utility */
+.dense-table th, .dense-table td {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Light mode table row zebra and hover states */
+[data-theme="light"] tr:hover {
+  background-color: rgba(139, 70, 30, 0.03);
+}
+
+/* Focus outline refinement */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(182, 99, 31, 0.2);
+}
