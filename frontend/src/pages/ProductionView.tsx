@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Factory, Play, CheckCircle2, ArrowRightLeft, AlertTriangle, 
+import {
+  Factory, Play, CheckCircle2, ArrowRightLeft, AlertTriangle,
   Plus, Package, Calculator, Sparkles, Filter, RefreshCw,
   Pencil, Trash2, Eye, Scale, Droplets, Film, Check, X, Layers,
   Search, AlertCircle, ShoppingCart, Warehouse, ChevronRight
@@ -8,14 +8,24 @@ import {
 import { api } from '../api/client';
 import { ProductionBatch, ProductVariant, RawMaterialVariant } from '../types';
 
-export const ProductionView: React.FC = () => {
+interface ProductionViewProps {
+  initialTab?: 'all' | 'phase1' | 'transfers' | 'phase2';
+}
+
+export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'all' }) => {
   const [batches, setBatches] = useState<ProductionBatch[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterialVariant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'phase1' | 'transfers' | 'phase2'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'phase1' | 'transfers' | 'phase2'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPackModal, setShowPackModal] = useState(false);
@@ -73,6 +83,7 @@ export const ProductionView: React.FC = () => {
   const [packError, setPackError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showWorkflowGuide, setShowWorkflowGuide] = useState(false);
 
   // Filtered raw materials by category
   const yarnVariants = useMemo(() => {
@@ -586,180 +597,210 @@ export const ProductionView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-factory-darkCard p-5 rounded-xl border border-factory-darkBorder shadow-sm">
-        <div>
+      {/* Header Bar */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3.5 sm:gap-4 bg-factory-darkCard p-3.5 sm:p-5 rounded-xl border border-factory-darkBorder shadow-sm">
+        <div className="min-w-0 w-full xl:w-auto">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-factory-rust/20 text-factory-amber">
+            <span className="p-2 rounded-lg bg-factory-rust/20 text-factory-amber shrink-0">
               <Factory className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold font-heading text-factory-paper">
-              Shoe Lace Production (3-Step Factory Flow)
+            <h1 className="text-lg sm:text-xl font-bold font-heading text-factory-paper">
+              Shoe Lace Production
+              <span className="hidden sm:inline text-xs sm:text-sm font-normal text-factory-muted ml-2 font-sans">
+                (3-Step Factory Flow)
+              </span>
             </h1>
           </div>
-          <p className="text-xs text-factory-muted mt-1">
+          <p className="text-[11px] sm:text-xs text-factory-muted mt-1">
             Step 1: Create Batch & Request Raw Materials → Step 2: Weigh Lace & Move (B1 → B2) → Step 3: Weigh & Move to Store
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-factory-muted" />
-            <input
-              type="text"
-              placeholder="Search run #, product, or request #..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-factory-dark border border-factory-darkBorder rounded-lg text-xs text-factory-paper placeholder-factory-muted focus:outline-none focus:border-factory-amber"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-factory-muted hover:text-factory-paper text-xs"
-              >
-                ✕
-              </button>
-            )}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full xl:w-auto shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-1 sm:flex-initial">
+            <div className="relative flex-1 sm:w-56 md:w-64 min-w-0">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-factory-muted" />
+              <input
+                type="text"
+                placeholder="Search run #, product, or request #..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-factory-dark border border-factory-darkBorder rounded-lg text-xs text-factory-paper placeholder-factory-muted focus:outline-none focus:border-factory-amber"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-factory-muted hover:text-factory-paper text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <button
+              onClick={fetchData}
+              className="p-2 sm:p-2.5 rounded-lg border border-factory-darkBorder text-factory-muted hover:text-factory-paper hover:bg-factory-darkBorder/40 transition-colors shrink-0 cursor-pointer"
+              title="Refresh Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-factory-amber' : ''}`} />
+            </button>
           </div>
           <button
-            onClick={fetchData}
-            className="p-2.5 rounded-lg border border-factory-darkBorder text-factory-muted hover:text-factory-paper hover:bg-factory-darkBorder/40 transition-colors"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-factory-amber' : ''}`} />
-          </button>
-          <button
             onClick={handleOpenCreateModal}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer w-full sm:w-auto shrink-0 whitespace-nowrap"
+            title="Step 1: Start Batch & Request Raw Materials"
           >
-            <Plus className="w-4 h-4" />
-            + Step 1: Start Batch & Request Materials
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline lg:hidden xl:inline">Step 1: Start Batch & Request Materials</span>
+            <span className="inline sm:hidden">Step 1: Start Batch & Request Materials</span>
+            <span className="hidden lg:inline xl:hidden">Start Batch & Request</span>
           </button>
         </div>
       </div>
 
-      {/* 3 Step Interactive Workflow Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Step 1 Card */}
-        <div className="bg-factory-darkCard/90 border border-factory-darkBorder p-4 rounded-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-factory-amber/5 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-factory-amber font-mono flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" />
-              STEP 1: BATCH & RAW MATERIALS
+      {/* 3 Step Interactive Workflow Bar (Collapsible to save vertical screen length) */}
+      <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl p-3 sm:p-3.5 space-y-3">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-factory-amber/10 text-factory-amber">
+              <Layers className="w-4 h-4" />
             </span>
-            <span className="text-xs px-2 py-0.5 rounded bg-factory-amber/10 text-factory-amber font-bold">
-              Building 1
-            </span>
-          </div>
-          <p className="text-xs text-factory-muted mb-3">
-            Create production run and request raw materials (Yarn, Acetone, Film Roll) directly from warehouse stock.
-          </p>
-          <div className="text-xs space-y-1 bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder text-factory-paper">
-            <div className="flex justify-between">
-              <span className="text-factory-muted">Materials Issued:</span>
-              <span className="font-semibold text-factory-amber">Yarn (32 KG Batches), Film, Acetone</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-factory-muted">Ledger:</span>
-              <span className="text-factory-paper">Auto-generates Stock Request</span>
+            <div>
+              <span className="text-xs font-bold text-factory-paper font-mono">
+                Factory 3-Step Lifecycle Overview
+              </span>
+              <span className="hidden sm:inline-block text-[11px] text-factory-muted ml-2">
+                (1. Yarn & B1 Braiding → 2. Weigh & B2 Tipping → 3. Move to Store)
+              </span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowWorkflowGuide(!showWorkflowGuide)}
+            className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg border border-factory-darkBorder bg-factory-dark hover:bg-factory-darkBorder/40 text-factory-muted hover:text-factory-paper text-xs transition-colors cursor-pointer self-start sm:self-auto"
+          >
+            <span>{showWorkflowGuide ? 'Hide Guide Details' : 'Show Step Details'}</span>
+            <span className="text-factory-amber font-mono text-[10px]">{showWorkflowGuide ? '▲' : '▼'}</span>
+          </button>
         </div>
 
-        {/* Step 2 Card */}
-        <div className="bg-factory-darkCard/90 border border-factory-darkBorder p-4 rounded-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-blue-400 font-mono flex items-center gap-1.5">
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-              STEP 2: WEIGH LACE & MOVE
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold">
-              B1 → B2 Transit
-            </span>
-          </div>
-          <p className="text-xs text-factory-muted mb-3">
-            Braided continuous lace is weighed coming off spindles, spindle waste is recorded, and cords move to Building 2.
-          </p>
-          <div className="text-xs space-y-1 bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder text-factory-paper">
-            <div className="flex justify-between">
-              <span className="text-factory-muted">Measured:</span>
-              <span className="font-semibold text-blue-400">Processed Cord Weight (KG)</span>
+        {showWorkflowGuide && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-factory-darkBorder/60 animate-fade-in">
+            {/* Step 1 Card */}
+            <div className="bg-factory-dark/80 border border-factory-darkBorder p-3.5 rounded-xl relative overflow-hidden">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-factory-amber font-mono flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" />
+                  STEP 1: BATCH & RAW MATERIALS
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-factory-amber/10 text-factory-amber font-bold">
+                  Building 1
+                </span>
+              </div>
+              <p className="text-[11px] text-factory-muted mb-2.5">
+                Create production run and request raw materials (Yarn 32 KG batches, Acetone, Film Roll) directly from warehouse stock.
+              </p>
+              <div className="text-[11px] space-y-1 bg-factory-darkCard p-2 rounded-lg border border-factory-darkBorder/60 text-factory-paper">
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Materials Issued:</span>
+                  <span className="font-semibold text-factory-amber">Yarn (32 KG Batches), Film, Acetone</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Ledger:</span>
+                  <span className="text-factory-paper">Auto-generates Stock Request</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between text-factory-crimson">
-              <span>Spindle Loss:</span>
-              <span>Yarn In - Processed Cord Out</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Step 3 Card */}
-        <div className="bg-factory-darkCard/90 border border-factory-darkBorder p-4 rounded-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 font-mono flex items-center gap-1.5">
-              <Warehouse className="w-3.5 h-3.5" />
-              STEP 3: WEIGH & MOVE TO STORE
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">
-              Finished Goods
-            </span>
-          </div>
-          <p className="text-xs text-factory-muted mb-3">
-            Tipped & cut shoelaces are weighed, overall yield % is calculated, and finished sacks (25–40 KG) are moved to the store.
-          </p>
-          <div className="text-xs space-y-1 bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder text-factory-paper">
-            <div className="flex justify-between">
-              <span className="text-factory-muted">Measured:</span>
-              <span className="font-semibold text-emerald-400">Finished Shoelaces (KG)</span>
+            {/* Step 2 Card */}
+            <div className="bg-factory-dark/80 border border-factory-darkBorder p-3.5 rounded-xl relative overflow-hidden">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-blue-400 font-mono flex items-center gap-1.5">
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  STEP 2: WEIGH LACE & MOVE
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold">
+                  B1 → B2 Transit
+                </span>
+              </div>
+              <p className="text-[11px] text-factory-muted mb-2.5">
+                Braided continuous lace is weighed coming off spindles, spindle waste is recorded, and cords move to Building 2.
+              </p>
+              <div className="text-[11px] space-y-1 bg-factory-darkCard p-2 rounded-lg border border-factory-darkBorder/60 text-factory-paper">
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Measured:</span>
+                  <span className="font-semibold text-blue-400">Processed Cord Weight (KG)</span>
+                </div>
+                <div className="flex justify-between text-factory-crimson">
+                  <span>Spindle Loss:</span>
+                  <span>Yarn In - Processed Cord Out</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-factory-muted">Storage:</span>
-              <span className="text-emerald-400 font-semibold">Weighed Sacks (25 to 40 KG)</span>
+
+            {/* Step 3 Card */}
+            <div className="bg-factory-dark/80 border border-factory-darkBorder p-3.5 rounded-xl relative overflow-hidden">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 font-mono flex items-center gap-1.5">
+                  <Warehouse className="w-3.5 h-3.5" />
+                  STEP 3: WEIGH & MOVE TO STORE
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">
+                  Finished Goods
+                </span>
+              </div>
+              <p className="text-[11px] text-factory-muted mb-2.5">
+                Tipped & cut shoelaces are weighed, overall yield % is calculated, and finished sacks (25–40 KG) are moved to the store.
+              </p>
+              <div className="text-[11px] space-y-1 bg-factory-darkCard p-2 rounded-lg border border-factory-darkBorder/60 text-factory-paper">
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Measured:</span>
+                  <span className="font-semibold text-emerald-400">Finished Shoelaces (KG)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Storage:</span>
+                  <span className="text-emerald-400 font-semibold">Weighed Sacks (25 to 40 KG)</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-factory-darkBorder overflow-x-auto">
+      <div className="flex border-b border-factory-darkBorder overflow-x-auto whitespace-nowrap scrollbar-thin">
         <button
           onClick={() => setActiveTab('all')}
-          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'all'
-              ? 'border-factory-amber text-factory-amber'
-              : 'border-transparent text-factory-muted hover:text-factory-paper'
-          }`}
+          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'all'
+            ? 'border-factory-amber text-factory-amber'
+            : 'border-transparent text-factory-muted hover:text-factory-paper'
+            }`}
         >
           All Runs ({batches.length})
         </button>
         <button
           onClick={() => setActiveTab('phase1')}
-          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'phase1'
-              ? 'border-factory-amber text-factory-amber'
-              : 'border-transparent text-factory-muted hover:text-factory-paper'
-          }`}
+          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'phase1'
+            ? 'border-factory-amber text-factory-amber'
+            : 'border-transparent text-factory-muted hover:text-factory-paper'
+            }`}
         >
           Step 1: Braiding B1 ({batches.filter(b => b.status === 'IN_PROGRESS' || b.status === 'PLANNED').length})
         </button>
         <button
           onClick={() => setActiveTab('transfers')}
-          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'transfers'
-              ? 'border-factory-amber text-factory-amber'
-              : 'border-transparent text-factory-muted hover:text-factory-paper'
-          }`}
+          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'transfers'
+            ? 'border-factory-amber text-factory-amber'
+            : 'border-transparent text-factory-muted hover:text-factory-paper'
+            }`}
         >
           Step 2: Transit & B2 ({batches.filter(b => b.status === 'PHASE_1_COMPLETE' || b.status === 'TRANSFERRED').length})
         </button>
         <button
           onClick={() => setActiveTab('phase2')}
-          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'phase2'
-              ? 'border-factory-amber text-factory-amber'
-              : 'border-transparent text-factory-muted hover:text-factory-paper'
-          }`}
+          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'phase2'
+            ? 'border-factory-amber text-factory-amber'
+            : 'border-transparent text-factory-muted hover:text-factory-paper'
+            }`}
         >
           Step 3: Stored in Warehouse ({batches.filter(b => b.status === 'COMPLETED').length})
         </button>
@@ -768,9 +809,9 @@ export const ProductionView: React.FC = () => {
       {/* Batches Table */}
       <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[920px]">
             <thead>
-              <tr className="bg-factory-dark/60 text-[11px] font-bold text-factory-muted uppercase tracking-wider border-b border-factory-darkBorder">
+              <tr className="bg-factory-dark/60 text-[11px] font-bold text-factory-muted uppercase tracking-wider border-b border-factory-darkBorder whitespace-nowrap">
                 <th className="py-3 px-4">Run # & Date</th>
                 <th className="py-3 px-4">Shoe Lace Product</th>
                 <th className="py-3 px-4">Materials Issued</th>
@@ -807,7 +848,7 @@ export const ProductionView: React.FC = () => {
                         className="px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-xs font-semibold shadow cursor-pointer inline-flex items-center gap-1.5"
                       >
                         <Plus className="w-4 h-4" />
-                        + Step 1: Start Batch & Request Materials
+                        Step 1: Start Batch & Request Materials
                       </button>
                     </div>
                   </td>
@@ -820,6 +861,9 @@ export const ProductionView: React.FC = () => {
                   const finishedOut = parseFloat(batch.finished_output_kg || '0');
                   const totalWaste = parseFloat(batch.total_waste_kg || '0');
                   const wastePct = parseFloat(batch.waste_percentage || '0');
+                  const remainingUnpacked = parseFloat(batch.remaining_unpacked_kg || '0');
+                  const totalPacked = parseFloat(batch.total_packed_kg || '0');
+                  const isFullyPacked = (batch.status === 'COMPLETED' || totalPacked > 0) && remainingUnpacked <= 0.001;
 
                   return (
                     <tr key={batch.id} className="hover:bg-factory-darkBorder/20 transition-colors">
@@ -913,9 +957,14 @@ export const ProductionView: React.FC = () => {
                                 0 sacks in store
                               </div>
                             )}
-                            {parseFloat(batch.remaining_unpacked_kg || '0') > 0 && (
+                            {parseFloat(batch.remaining_unpacked_kg || '0') > 0 ? (
                               <div className="text-[9px] text-factory-amber font-medium">
                                 {batch.remaining_unpacked_kg} KG unpacked
+                              </div>
+                            ) : batch.status === 'COMPLETED' && (
+                              <div className="text-[9px] text-emerald-400 font-semibold flex items-center gap-0.5">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                                <span>100% Packed</span>
                               </div>
                             )}
                           </div>
@@ -942,13 +991,12 @@ export const ProductionView: React.FC = () => {
                       {/* Overall Efficiency / Yield % */}
                       <td className="py-3.5 px-4 font-mono font-bold">
                         <span
-                          className={`px-2 py-0.5 rounded text-xs inline-block ${
-                            yieldNum >= 92
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : yieldNum > 0
+                          className={`px-2 py-0.5 rounded text-xs inline-block ${yieldNum >= 92
+                            ? 'bg-emerald-500/10 text-emerald-400'
+                            : yieldNum > 0
                               ? 'bg-factory-amber/10 text-factory-amber'
                               : 'text-factory-muted'
-                          }`}
+                            }`}
                         >
                           {yieldNum > 0 ? `${yieldNum.toFixed(1)}%` : '—'}
                         </span>
@@ -957,23 +1005,22 @@ export const ProductionView: React.FC = () => {
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider inline-block ${
-                            batch.status === 'COMPLETED'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : batch.status === 'TRANSFERRED'
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider inline-block ${batch.status === 'COMPLETED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : batch.status === 'TRANSFERRED'
                               ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                               : batch.status === 'PHASE_1_COMPLETE'
-                              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                              : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
-                          }`}
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
+                            }`}
                         >
                           {batch.status === 'IN_PROGRESS'
                             ? '1. BRAIDING IN B1'
                             : batch.status === 'TRANSFERRED'
-                            ? '2. IN TRANSIT / B2'
-                            : batch.status === 'COMPLETED'
-                            ? '3. STORED GOODS'
-                            : batch.status.replace(/_/g, ' ')}
+                              ? '2. IN TRANSIT / B2'
+                              : batch.status === 'COMPLETED'
+                                ? '3. STORED GOODS'
+                                : batch.status.replace(/_/g, ' ')}
                         </span>
                       </td>
 
@@ -1021,21 +1068,31 @@ export const ProductionView: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Completed Run: Pack Additional Sacks as much as desired */}
+                          {/* Completed Run: Pack Sacks or Inform All Packed */}
                           {batch.status === 'COMPLETED' && (
-                            <button
-                              onClick={() => {
-                                setSelectedBatch(batch);
-                                const rem = parseFloat(batch.remaining_unpacked_kg || '0');
-                                setBagWeight(rem > 0 ? rem.toFixed(2) : '32.00');
-                                setShowPackModal(true);
-                              }}
-                              className="px-2.5 py-1 bg-factory-rust hover:bg-factory-rustLight text-white rounded text-xs font-semibold flex items-center gap-1 shadow cursor-pointer"
-                              title="Pack Finished Sacks to Store"
-                            >
-                              <Package className="w-3 h-3" />
-                              + Pack Sacks ({batch.bag_count || 0})
-                            </button>
+                            isFullyPacked ? (
+                              <button
+                                disabled
+                                className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400/90 border border-emerald-500/25 rounded text-xs font-semibold flex items-center gap-1 opacity-80 cursor-not-allowed shadow-none"
+                                title={`Batch ${batch.batch_number} is completely packed (${totalPacked > 0 ? totalPacked.toFixed(2) : finishedOut.toFixed(2)} KG in ${batch.bag_count || 0} sacks). No more packs can be extracted from this batch.`}
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <span>Fully Packed ({batch.bag_count || 0})</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedBatch(batch);
+                                  setBagWeight(remainingUnpacked > 0 ? remainingUnpacked.toFixed(2) : '32.00');
+                                  setShowPackModal(true);
+                                }}
+                                className="px-2.5 py-1 bg-factory-rust hover:bg-factory-rustLight text-white rounded text-xs font-semibold flex items-center gap-1 shadow cursor-pointer transition-colors"
+                                title={`Pack Remaining Finished Sacks (${remainingUnpacked.toFixed(2)} KG unpacked remaining)`}
+                              >
+                                <Package className="w-3 h-3 shrink-0" />
+                                <span>+ Pack Sack ({remainingUnpacked.toFixed(1)}k left)</span>
+                              </button>
+                            )
                           )}
 
                           {/* Quick Edit Button (Edit/Fix Amounts Anytime) */}
@@ -1071,542 +1128,563 @@ export const ProductionView: React.FC = () => {
 
       {/* MODAL 1: STEP 1 - Start Batch & Request Raw Materials */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
-              <div>
-                <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
-                  <Factory className="w-4 h-4 text-factory-amber" />
-                  Step 1: Start Production Run & Request Raw Materials
-                </h2>
-                <p className="text-[11px] text-factory-muted mt-0.5">
-                  Prepares the batch and automatically fetches live stock from the warehouse.
+        <div
+          onClick={() => setShowCreateModal(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 cursor-pointer"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleCreateBatch}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-4xl w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            {/* Sticky Compact Header with Live Inventory Status */}
+            <div className="px-3.5 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex items-center justify-between shrink-0 bg-factory-darkCard/95">
+              <div className="min-w-0 pr-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-1.5 truncate">
+                    <Factory className="w-4 h-4 text-factory-amber shrink-0" />
+                    Step 1: Start Production Run
+                  </h2>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-medium border border-emerald-500/30">
+                    <span className={`w-1.5 h-1.5 rounded-full ${stockLoading ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                    <span>{stockLoading ? 'Syncing...' : 'Warehouse Stock Live'}</span>
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-factory-muted truncate mt-0.5">
+                  Prepares batch & requests live materials (32 KG yarn batches, film & solvent) for Building 1.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={fetchFreshStock}
                   disabled={stockLoading}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-factory-darkBorder bg-factory-dark hover:bg-factory-darkCard text-factory-muted hover:text-factory-paper text-[11px] transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-factory-darkBorder bg-factory-dark hover:bg-factory-darkCard text-factory-muted hover:text-factory-paper text-[11px] transition-colors cursor-pointer"
                   title="Re-check live warehouse inventory"
                 >
                   <RefreshCw className={`w-3 h-3 ${stockLoading ? 'animate-spin text-factory-amber' : ''}`} />
-                  <span>{stockLoading ? 'Fetching Stock...' : 'Refresh Stock'}</span>
+                  <span className="hidden sm:inline">{stockLoading ? 'Syncing' : 'Sync'}</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1"
+                  className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1.5 rounded-lg hover:bg-factory-dark"
+                  aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
             </div>
 
-            {/* Live Warehouse Sync Status Banner */}
-            <div className="px-3 py-1.5 rounded-lg bg-factory-dark/90 border border-factory-darkBorder/70 text-[11px] flex items-center justify-between text-factory-muted">
-              <span className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${stockLoading ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
-                <span className="text-factory-cream font-medium">
-                  {stockLoading ? 'Syncing warehouse inventory...' : 'Live Warehouse Stock Connected'}
-                </span>
-              </span>
-              {stockLastRefreshed && (
-                <span className="font-mono text-[10px]">
-                  Refreshed {stockLastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
+            {/* Scrollable Form Body */}
+            <div className="overflow-y-auto flex-1 p-3 sm:p-4 space-y-2.5 text-xs scrollbar-thin">
+              {actionError && (
+                <div className="p-2.5 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{actionError}</span>
+                </div>
               )}
-            </div>
 
-            {actionError && (
-              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateBatch} className="space-y-4 text-xs">
-              {/* Shoe Lace Product */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-factory-muted font-medium">Shoe Lace Product to Produce *</label>
-                  {selectedProduct && (
-                    <span className="text-[10px] text-factory-muted font-mono">
-                      Current Store: <strong className="text-emerald-400">{parseFloat(String(selectedProduct.stock?.calculated_stock || selectedProduct.stock?.total || '0')).toFixed(2)} KG</strong>
-                    </span>
-                  )}
-                </div>
-                <select
-                  value={newBatch.product_variant}
-                  onChange={(e) => handleSelectProduct(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
-                  required
-                >
-                  <option value="">-- Choose Product Variant --</option>
-                  {variants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.serial_code} - {v.color_details?.name || 'Standard'} ({v.thickness_details?.name || 'Standard'})
-                    </option>
-                  ))}
-                </select>
-
-                {selectedProduct && (
-                  <div className="flex flex-wrap items-center justify-between mt-1.5 px-3 py-2 rounded-lg bg-factory-dark/80 border border-factory-darkBorder text-[11px] gap-2">
-                    <div className="flex items-center gap-1.5 text-factory-cream">
-                      <Package className="w-3.5 h-3.5 text-factory-amber" />
-                      <span>Store Stock:</span>
-                      <span className="font-semibold font-mono text-emerald-400">
-                        {parseFloat(String(selectedProduct.stock?.calculated_stock || selectedProduct.stock?.total || '0')).toFixed(2)} KG
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] text-factory-muted">
-                      <span>Color: <strong className="text-factory-paper">{selectedProduct.color_details?.name || 'Standard'}</strong></span>
-                      <span className="text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/40">
-                        ✓ Auto-matched Yarn & Film
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Raw Material Selection: Yarn (Standard 32 KG Batches) */}
-              <div className="bg-factory-dark/60 p-3.5 rounded-lg border border-factory-darkBorder space-y-3">
-                <div className="flex justify-between items-center">
-                  <label className="text-factory-amber font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                    <Layers className="w-3.5 h-3.5" />
-                    1. Raw Yarn Request (Standard 32 KG Batches)
-                  </label>
-                  {selectedYarnStock && (
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                      yarnAvailableKg > 0 
-                        ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40' 
-                        : 'bg-red-950/40 text-red-300 border-red-800/40'
-                    }`}>
-                      Store Stock: <strong className="font-bold">{yarnAvailableKg.toFixed(2)} KG</strong>
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Select Polyester Yarn *</label>
-                  <select
-                    value={newBatch.raw_material_yarn}
-                    onChange={(e) => setNewBatch({ ...newBatch, raw_material_yarn: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper focus:outline-none focus:border-factory-amber"
-                    required
-                  >
-                    <option value="">-- Choose Yarn --</option>
-                    {yarnVariants.map((y) => {
-                      const avail = parseFloat(String(y.total_available_kg || 0));
-                      return (
-                        <option key={y.id} value={y.id}>
-                          {y.material_type_name} - {y.color_name} ({avail.toFixed(1)} KG available in store)
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {/* Warehouse Stock Availability Preview Card */}
-                {selectedYarnStock && (
-                  <div className={`p-3 rounded-lg border text-xs space-y-2.5 transition-all ${
-                    isYarnStockSufficient 
-                      ? 'bg-emerald-950/20 border-emerald-500/30' 
-                      : 'bg-amber-950/25 border-amber-500/40'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-factory-paper flex items-center gap-1.5">
-                        <Warehouse className="w-3.5 h-3.5 text-factory-amber" />
-                        Store Availability: {selectedYarnStock.color_name} Polyester Yarn
-                      </span>
-                      <span className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
-                        yarnAvailableKg > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
-                      }`}>
-                        {yarnAvailableKg.toFixed(2)} KG Available
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-                      <div className="bg-factory-dark/70 p-2 rounded border border-factory-darkBorder/60">
-                        <div className="text-[10px] text-factory-muted">Available in Store</div>
-                        <div className="font-mono font-bold text-emerald-400 mt-0.5">{yarnAvailableKg.toFixed(1)} KG</div>
-                      </div>
-                      <div className="bg-factory-dark/70 p-2 rounded border border-factory-darkBorder/60">
-                        <div className="text-[10px] text-factory-muted">Required ({newBatch.yarn_batch_count}b)</div>
-                        <div className="font-mono font-bold text-factory-paper mt-0.5">{yarnRequestedKg.toFixed(1)} KG</div>
-                      </div>
-                      <div className="bg-factory-dark/70 p-2 rounded border border-factory-darkBorder/60">
-                        <div className="text-[10px] text-factory-muted">Balance After</div>
-                        <div className={`font-mono font-bold mt-0.5 ${yarnAvailableKg >= yarnRequestedKg ? 'text-blue-400' : 'text-factory-crimson'}`}>
-                          {(yarnAvailableKg - yarnRequestedKg).toFixed(1)} KG
-                        </div>
-                      </div>
-                    </div>
-
-                    {!isYarnStockSufficient && (
-                      <div className="flex items-start gap-2 text-[11px] text-amber-200 bg-amber-950/60 p-2.5 rounded-lg border border-amber-600/40">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="font-semibold block text-amber-300">Insufficient Warehouse Stock:</strong>
-                          <span>
-                            Only {yarnAvailableKg.toFixed(1)} KG available in store, but {yarnRequestedKg.toFixed(1)} KG is required for {newBatch.yarn_batch_count} {newBatch.yarn_batch_count === 1 ? 'batch' : 'batches'} (Deficit: {yarnStockShortage.toFixed(1)} KG). Please reduce batches or add new yarn stock in Raw Materials.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 32 KG Batch Standard Selector */}
-                <div className="p-3 bg-factory-dark rounded-lg border border-factory-amber/30 space-y-2">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div>
-                      <span className="text-xs font-semibold text-factory-paper flex items-center gap-1.5">
-                        <Scale className="w-3.5 h-3.5 text-factory-amber" />
-                        Store Batch Count (1 Batch = 32 KG)
-                      </span>
-                      <p className="text-[10px] text-factory-muted">
-                        Yarn leaves store in fixed 32 KG units (1=32kg, 2=64kg, 3=96kg, 4=128kg...)
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center border border-factory-darkBorder rounded-lg bg-factory-darkCard overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nextCount = Math.max(1, (newBatch.yarn_batch_count || 1) - 1);
-                            setNewBatch({
-                              ...newBatch,
-                              yarn_batch_count: nextCount,
-                              raw_yarn_input_kg: (nextCount * 32).toFixed(2)
-                            });
-                          }}
-                          className="px-2.5 py-1 text-factory-muted hover:text-factory-paper hover:bg-factory-dark transition-colors cursor-pointer text-sm font-bold"
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={newBatch.yarn_batch_count}
-                          onChange={(e) => {
-                            const val = Math.max(1, parseInt(e.target.value) || 1);
-                            setNewBatch({
-                              ...newBatch,
-                              yarn_batch_count: val,
-                              raw_yarn_input_kg: (val * 32).toFixed(2)
-                            });
-                          }}
-                          className="w-12 py-1 text-center bg-transparent text-factory-paper font-mono font-bold text-xs focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nextCount = (newBatch.yarn_batch_count || 1) + 1;
-                            setNewBatch({
-                              ...newBatch,
-                              yarn_batch_count: nextCount,
-                              raw_yarn_input_kg: (nextCount * 32).toFixed(2)
-                            });
-                          }}
-                          className="px-2.5 py-1 text-factory-muted hover:text-factory-paper hover:bg-factory-dark transition-colors cursor-pointer text-sm font-bold"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <span className="text-[11px] text-factory-amber font-mono font-semibold">
-                        = {(Number(newBatch.yarn_batch_count) * 32).toFixed(2)} KG
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Quick Pick Chips */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-factory-muted mr-1">Quick Pick:</span>
-                    {[1, 2, 3, 4, 5].map((cnt) => (
-                      <button
-                        key={cnt}
-                        type="button"
-                        onClick={() => {
-                          setNewBatch({
-                            ...newBatch,
-                            yarn_batch_count: cnt,
-                            raw_yarn_input_kg: (cnt * 32).toFixed(2)
-                          });
-                        }}
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold transition-colors cursor-pointer ${
-                          newBatch.yarn_batch_count === cnt
-                            ? 'bg-factory-amber text-black'
-                            : 'bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber'
-                        }`}
-                      >
-                        {cnt} {cnt === 1 ? 'Batch' : 'Batches'} ({cnt * 32} KG)
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Measured scale total with fine-tuning */}
-                  <div className="pt-1.5 flex items-center justify-between border-t border-factory-darkBorder/60 text-[11px]">
-                    <span className="text-factory-muted">Scale Total Weight:</span>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="1"
-                        value={newBatch.raw_yarn_input_kg}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const count = Math.max(1, Math.round(parseFloat(val || '32') / 32));
-                          setNewBatch({
-                            ...newBatch,
-                            raw_yarn_input_kg: val,
-                            yarn_batch_count: count
-                          });
-                        }}
-                        className="w-24 bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-0.5 text-right text-factory-paper font-semibold font-mono text-xs focus:outline-none focus:border-factory-amber"
-                        required
-                      />
-                      <span className="text-factory-muted font-mono font-semibold">KG</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Raw Material Selection: Acetone & Film Roll */}
-              <div className="bg-factory-dark/60 p-3.5 rounded-lg border border-factory-darkBorder space-y-2.5">
-                <span className="text-blue-400 font-semibold flex items-center justify-between uppercase tracking-wider text-[11px]">
-                  <div className="flex items-center gap-1.5">
-                    <Droplets className="w-3.5 h-3.5" />
-                    2. Tipping Materials Request (Step 2 Aglets)
-                  </div>
-                  <span className="text-[10px] text-factory-muted normal-case font-normal">
-                    Plastic film & acetone for shoelace tips
-                  </span>
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-factory-muted font-medium">Acetone Solvent (Liters)</label>
-                      {acetoneStock && (
-                        <span className="text-[10px] font-mono text-emerald-400">
-                          Store: {parseFloat(String(acetoneStock.total_available_kg || 0)).toFixed(1)} L
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={newBatch.acetone_used}
-                      onChange={(e) => setNewBatch({ ...newBatch, acetone_used: e.target.value })}
-                      className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper font-mono focus:outline-none focus:border-factory-amber"
-                    />
-                    <span className="text-[10px] text-factory-muted mt-0.5 block">Solvent for tipping machine</span>
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-factory-muted font-medium">Film Roll (Plastic Wrap)</label>
-                      {selectedFilmStock && (
-                        <span className="text-[10px] font-mono text-emerald-400">
-                          Store: {parseFloat(String(selectedFilmStock.total_available_kg || 0)).toFixed(0)} rolls
+              {/* Responsive 2-Column Grid (Stacks on small screens, 2 tight columns on md+ screens) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 items-start">
+                {/* LEFT COLUMN: Product & 32 KG Yarn Specification */}
+                <div className="space-y-2.5 min-w-0">
+                  {/* Shoe Lace Product */}
+                  <div className="bg-factory-dark/40 p-2.5 sm:p-3 rounded-lg border border-factory-darkBorder space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-factory-paper font-semibold text-xs flex items-center gap-1.5">
+                        <Package className="w-3.5 h-3.5 text-factory-amber" />
+                        Shoe Lace Product to Produce *
+                      </label>
+                      {selectedProduct && (
+                        <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                          Store: {parseFloat(String(selectedProduct.stock?.calculated_stock || selectedProduct.stock?.total || '0')).toFixed(1)} KG
                         </span>
                       )}
                     </div>
                     <select
-                      value={newBatch.film_roll_variant}
-                      onChange={(e) => setNewBatch({ ...newBatch, film_roll_variant: e.target.value })}
-                      className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1 text-factory-paper mb-1 focus:outline-none focus:border-factory-amber"
+                      value={newBatch.product_variant}
+                      onChange={(e) => handleSelectProduct(e.target.value)}
+                      className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper text-xs focus:outline-none focus:border-factory-amber"
+                      required
                     >
-                      <option value="">-- Choose Film Roll --</option>
-                      {filmVariants.map((f) => {
-                        const rAvail = parseFloat(String(f.total_available_kg || 0));
-                        return (
-                          <option key={f.id} value={f.id}>
-                            {f.color_name} ({rAvail.toFixed(0)} rolls in store)
-                          </option>
-                        );
-                      })}
+                      <option value="">-- Choose Product Variant --</option>
+                      {variants.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.serial_code} - {v.color_details?.name || 'Standard'} ({v.thickness_details?.name || 'Standard'})
+                        </option>
+                      ))}
                     </select>
-                    <div className="flex items-center gap-1 mt-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={newBatch.film_roll_used}
-                        onChange={(e) => setNewBatch({ ...newBatch, film_roll_used: e.target.value })}
-                        placeholder="Rolls"
-                        className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1 text-factory-paper text-xs font-mono"
-                      />
-                      <span className="text-[10px] text-factory-muted shrink-0">Rolls</span>
+
+                    {selectedProduct && (
+                      <div className="flex flex-wrap items-center justify-between px-2 py-1 rounded bg-factory-dark border border-factory-darkBorder/70 text-[10px] gap-1 text-factory-muted">
+                        <span>Color: <strong className="text-factory-paper">{selectedProduct.color_details?.name || 'Standard'}</strong></span>
+                        <span className="text-emerald-400 font-medium">✓ Auto-matched Yarn & Film</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Raw Material Selection: Yarn (Standard 32 KG Batches) */}
+                  <div className="bg-factory-dark/40 p-2.5 sm:p-3 rounded-lg border border-factory-darkBorder space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-factory-amber font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                        <Layers className="w-3.5 h-3.5" />
+                        1. Raw Yarn Request
+                      </label>
+                      {selectedYarnStock && (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${yarnAvailableKg > 0
+                            ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40'
+                            : 'bg-red-950/40 text-red-300 border-red-800/40'
+                          }`}>
+                          {yarnAvailableKg.toFixed(1)} KG in Store
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <select
+                        value={newBatch.raw_material_yarn}
+                        onChange={(e) => setNewBatch({ ...newBatch, raw_material_yarn: e.target.value })}
+                        className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper text-xs focus:outline-none focus:border-factory-amber"
+                        required
+                      >
+                        <option value="">-- Choose Yarn --</option>
+                        {yarnVariants.map((y) => {
+                          const avail = parseFloat(String(y.total_available_kg || 0));
+                          return (
+                            <option key={y.id} value={y.id}>
+                              {y.material_type_name} - {y.color_name} ({avail.toFixed(1)} KG in store)
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* 32 KG Batch Standard Selector */}
+                    <div className="p-2 sm:p-2.5 bg-factory-dark rounded-lg border border-factory-amber/30 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <Scale className="w-3.5 h-3.5 text-factory-amber shrink-0" />
+                          <span className="text-xs font-semibold text-factory-paper">
+                            Batch Count (32 KG/batch)
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center border border-factory-darkBorder rounded bg-factory-darkCard overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextCount = Math.max(1, (newBatch.yarn_batch_count || 1) - 1);
+                                setNewBatch({
+                                  ...newBatch,
+                                  yarn_batch_count: nextCount,
+                                  raw_yarn_input_kg: (nextCount * 32).toFixed(2)
+                                });
+                              }}
+                              className="px-2 py-0.5 text-factory-muted hover:text-factory-paper hover:bg-factory-dark transition-colors cursor-pointer text-xs font-bold"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max="50"
+                              value={newBatch.yarn_batch_count}
+                              onChange={(e) => {
+                                const val = Math.max(1, parseInt(e.target.value) || 1);
+                                setNewBatch({
+                                  ...newBatch,
+                                  yarn_batch_count: val,
+                                  raw_yarn_input_kg: (val * 32).toFixed(2)
+                                });
+                              }}
+                              className="w-8 py-0.5 text-center bg-transparent text-factory-paper font-mono font-bold text-xs focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextCount = (newBatch.yarn_batch_count || 1) + 1;
+                                setNewBatch({
+                                  ...newBatch,
+                                  yarn_batch_count: nextCount,
+                                  raw_yarn_input_kg: (nextCount * 32).toFixed(2)
+                                });
+                              }}
+                              className="px-2 py-0.5 text-factory-muted hover:text-factory-paper hover:bg-factory-dark transition-colors cursor-pointer text-xs font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="text-xs text-factory-amber font-mono font-bold whitespace-nowrap">
+                            = {(Number(newBatch.yarn_batch_count) * 32).toFixed(1)} KG
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quick Pick Chips */}
+                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                        <span className="text-[10px] text-factory-muted mr-0.5">Quick:</span>
+                        {[1, 2, 3, 4, 5].map((cnt) => (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => {
+                              setNewBatch({
+                                ...newBatch,
+                                yarn_batch_count: cnt,
+                                raw_yarn_input_kg: (cnt * 32).toFixed(2)
+                              });
+                            }}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-colors cursor-pointer ${newBatch.yarn_batch_count === cnt
+                                ? 'bg-factory-amber text-black'
+                                : 'bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber'
+                              }`}
+                          >
+                            {cnt}b ({cnt * 32}k)
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Measured scale total with fine-tuning */}
+                      <div className="pt-1 flex items-center justify-between border-t border-factory-darkBorder/60 text-[11px]">
+                        <span className="text-factory-muted">Scale Total (KG):</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="1"
+                            value={newBatch.raw_yarn_input_kg}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const count = Math.max(1, Math.round(parseFloat(val || '32') / 32));
+                              setNewBatch({
+                                ...newBatch,
+                                raw_yarn_input_kg: val,
+                                yarn_batch_count: count
+                              });
+                            }}
+                            className="w-16 bg-factory-darkCard border border-factory-darkBorder rounded px-1.5 py-0.5 text-right text-factory-paper font-semibold font-mono text-xs focus:outline-none focus:border-factory-amber"
+                            required
+                          />
+                          <span className="text-factory-muted font-mono font-semibold text-[10px]">KG</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN: Warehouse Balance Preview, Tipping Materials & Personnel */}
+                <div className="space-y-2.5 min-w-0">
+                  {/* Live Warehouse Stock Availability Preview */}
+                  {selectedYarnStock ? (
+                    <div className={`p-2.5 sm:p-3 rounded-lg border text-xs space-y-1.5 transition-all ${isYarnStockSufficient
+                        ? 'bg-emerald-950/20 border-emerald-500/30'
+                        : 'bg-amber-950/25 border-amber-500/40'
+                      }`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-semibold text-factory-paper flex items-center gap-1.5 truncate text-[11px]">
+                          <Warehouse className="w-3.5 h-3.5 text-factory-amber shrink-0" />
+                          Stock: {selectedYarnStock.color_name} Yarn
+                        </span>
+                        <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[10px] shrink-0 ${yarnAvailableKg > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                          }`}>
+                          {yarnAvailableKg.toFixed(1)} KG Avail
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
+                        <div className="bg-factory-dark/70 p-1 rounded border border-factory-darkBorder/60 min-w-0">
+                          <div className="text-[9px] text-factory-muted truncate">In Store</div>
+                          <div className="font-mono font-bold text-emerald-400 mt-0.5 truncate">{yarnAvailableKg.toFixed(1)} KG</div>
+                        </div>
+                        <div className="bg-factory-dark/70 p-1 rounded border border-factory-darkBorder/60 min-w-0">
+                          <div className="text-[9px] text-factory-muted truncate">Required</div>
+                          <div className="font-mono font-bold text-factory-paper mt-0.5 truncate">{yarnRequestedKg.toFixed(1)} KG</div>
+                        </div>
+                        <div className="bg-factory-dark/70 p-1 rounded border border-factory-darkBorder/60 min-w-0">
+                          <div className="text-[9px] text-factory-muted truncate">Balance After</div>
+                          <div className={`font-mono font-bold mt-0.5 truncate ${yarnAvailableKg >= yarnRequestedKg ? 'text-blue-400' : 'text-factory-crimson'}`}>
+                            {(yarnAvailableKg - yarnRequestedKg).toFixed(1)} KG
+                          </div>
+                        </div>
+                      </div>
+
+                      {!isYarnStockSufficient && (
+                        <div className="flex items-start gap-1 text-[10px] text-amber-200 bg-amber-950/60 p-1.5 rounded border border-amber-600/40">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <strong className="font-semibold block text-amber-300">Shortage:</strong>
+                            <span>
+                              Deficit of {yarnStockShortage.toFixed(1)} KG. Please reduce batch count or add stock.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-lg border border-factory-darkBorder bg-factory-dark/30 text-factory-muted text-[11px] flex items-center gap-2">
+                      <Warehouse className="w-3.5 h-3.5 text-factory-amber shrink-0" />
+                      <span>Select yarn on the left to verify warehouse balance.</span>
+                    </div>
+                  )}
+
+                  {/* 2. Tipping Materials Request */}
+                  <div className="bg-factory-dark/40 p-2.5 sm:p-3 rounded-lg border border-factory-darkBorder space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-blue-400 font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                        <Droplets className="w-3.5 h-3.5" />
+                        2. Tipping Materials
+                      </span>
+                      <span className="text-[10px] text-factory-muted">Film & Acetone for Tips</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <div className="flex justify-between items-center mb-0.5">
+                          <label className="text-factory-muted text-[10px]">Acetone (L)</label>
+                          {acetoneStock && (
+                            <span className="text-[9px] font-mono text-emerald-400">
+                              Store: {parseFloat(String(acetoneStock.total_available_kg || 0)).toFixed(1)} L
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newBatch.acetone_used}
+                          onChange={(e) => setNewBatch({ ...newBatch, acetone_used: e.target.value })}
+                          className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-mono text-xs focus:outline-none focus:border-factory-amber"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-0.5">
+                          <label className="text-factory-muted text-[10px]">Film Roll</label>
+                          {selectedFilmStock && (
+                            <span className="text-[9px] font-mono text-emerald-400">
+                              Store: {parseFloat(String(selectedFilmStock.total_available_kg || 0)).toFixed(0)} r
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <select
+                            value={newBatch.film_roll_variant}
+                            onChange={(e) => setNewBatch({ ...newBatch, film_roll_variant: e.target.value })}
+                            className="w-2/3 bg-factory-dark border border-factory-darkBorder rounded px-1.5 py-1 text-factory-paper text-[10px] focus:outline-none focus:border-factory-amber"
+                          >
+                            <option value="">-- Roll --</option>
+                            {filmVariants.map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.color_name}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Qty"
+                            value={newBatch.film_roll_used}
+                            onChange={(e) => setNewBatch({ ...newBatch, film_roll_used: e.target.value })}
+                            className="w-1/3 bg-factory-dark border border-factory-darkBorder rounded px-1.5 py-1 text-factory-paper text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Supervisor & Notes */}
+                  <div className="bg-factory-dark/40 p-2.5 sm:p-3 rounded-lg border border-factory-darkBorder space-y-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-factory-muted mb-0.5 text-[10px] font-medium">Shift Supervisor *</label>
+                        <input
+                          type="text"
+                          value={newBatch.supervisor}
+                          onChange={(e) => setNewBatch({ ...newBatch, supervisor: e.target.value })}
+                          className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper text-xs focus:outline-none focus:border-factory-amber"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-factory-muted mb-0.5 text-[10px] font-medium">Shift Notes</label>
+                        <input
+                          type="text"
+                          value={newBatch.notes}
+                          onChange={(e) => setNewBatch({ ...newBatch, notes: e.target.value })}
+                          placeholder="Instructions..."
+                          className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper text-xs focus:outline-none focus:border-factory-amber"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-1.5 rounded bg-factory-dark border border-factory-darkBorder/70 text-[10px] text-factory-muted flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Generates Stock Request & issues raw materials to Building 1.</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Shift Supervisor */}
-              <div>
-                <label className="block text-factory-muted mb-1 font-medium">Shift Supervisor *</label>
-                <input
-                  type="text"
-                  value={newBatch.supervisor}
-                  onChange={(e) => setNewBatch({ ...newBatch, supervisor: e.target.value })}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
-                  required
-                />
+            {/* Sticky Footer */}
+            <div className="px-3.5 py-2 sm:px-5 sm:py-2.5 border-t border-factory-darkBorder flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-2 shrink-0 bg-factory-darkCard/95">
+              <div className="text-[11px] text-factory-muted font-mono hidden sm:block">
+                Requested: <span className="text-factory-amber font-bold">{newBatch.yarn_batch_count || 1} Batches</span> ({(Number(newBatch.yarn_batch_count || 1) * 32).toFixed(1)} KG Yarn)
               </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-factory-muted mb-1 font-medium">Notes & Work Instructions</label>
-                <textarea
-                  value={newBatch.notes}
-                  onChange={(e) => setNewBatch({ ...newBatch, notes: e.target.value })}
-                  placeholder="Optional shift notes..."
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper h-16 focus:outline-none focus:border-factory-amber"
-                />
-              </div>
-
-              <div className="p-2.5 rounded-lg bg-factory-dark border border-factory-darkBorder/80 text-[11px] text-factory-muted flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Submitting will generate a formal Inventory Stock Request and issue materials to Building 1.</span>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-2.5 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer"
+                  className="w-full sm:w-auto px-3.5 py-1.5 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer text-center text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center gap-2 cursor-pointer shadow"
+                  className="w-full sm:w-auto px-4 py-1.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow text-xs"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Issue Materials & Start Braiding
                 </button>
               </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
       )}
 
       {/* MODAL 2: STEP 2 - Weigh Processed Lace & Move to Building 2 */}
       {b2Batch && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
+        <div
+          onClick={() => setB2Batch(null)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
               <div>
-                <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                   <ArrowRightLeft className="w-4 h-4 text-blue-400" />
                   Step 2: Weigh Lace & Move (B1 → B2)
                 </h2>
-                <p className="text-[11px] text-factory-muted">
+                <p className="text-[10px] sm:text-[11px] text-factory-muted">
                   Input braided cord weight to calculate spindle waste and move to Building 2.
                 </p>
               </div>
               <button
                 onClick={() => setB2Batch(null)}
-                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer"
+                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1 rounded hover:bg-factory-dark"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            {actionError && (
-              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs">
-                {actionError}
-              </div>
-            )}
+            <form onSubmit={handleMoveToB2Submit} className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-2.5 text-xs scrollbar-thin">
+              {actionError && (
+                <div className="p-2.5 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs">
+                  {actionError}
+                </div>
+              )}
 
-            <form onSubmit={handleMoveToB2Submit} className="space-y-4 text-xs">
-              <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder space-y-1.5">
+              <div className="p-2.5 bg-factory-dark rounded-lg border border-factory-darkBorder space-y-1 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-factory-muted">Production Run:</span>
-                  <span className="font-mono font-bold text-factory-amber">{b2Batch.batch_number}</span>
+                  <span className="text-factory-muted">Batch:</span>
+                  <span className="font-bold text-factory-paper">{b2Batch.batch_number}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-factory-muted">Shoe Lace Product:</span>
-                  <span className="font-semibold text-factory-paper">{b2Batch.product_name}</span>
+                  <span className="text-factory-muted">Initial Raw Yarn Input:</span>
+                  <span className="font-bold text-factory-amber font-mono">{b2Batch.raw_yarn_input_kg} KG</span>
                 </div>
-                <div className="flex justify-between text-factory-paper">
-                  <span className="text-factory-muted">Raw Yarn Issued:</span>
-                  <span className="font-mono font-semibold">
-                    {b2Batch.yarn_batch_count || Math.max(1, Math.round(parseFloat(b2Batch.raw_yarn_input_kg || '32') / 32))} {(b2Batch.yarn_batch_count || Math.max(1, Math.round(parseFloat(b2Batch.raw_yarn_input_kg || '32') / 32))) === 1 ? 'Batch' : 'Batches'} ({b2Batch.raw_yarn_input_kg} KG)
-                  </span>
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Product:</span>
+                  <span className="text-factory-paper truncate">{b2Batch.product_name}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-factory-muted mb-1 font-medium">
-                  Weighed Processed Lace / Braided Cords (KG) *
+                <label className="block text-xs font-semibold text-factory-paper mb-1 flex items-center justify-between">
+                  <span>Braided Continuous Cord Weight (KG) *</span>
+                  <span className="text-[10px] font-mono text-blue-400">Scale Reading</span>
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  value={b2BraidedWeight}
-                  onChange={(e) => setB2BraidedWeight(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-mono font-bold text-sm focus:outline-none focus:border-blue-400"
-                  required
-                  autoFocus
-                />
-                <span className="text-[11px] text-factory-muted mt-0.5 block">
-                  Measured weight of continuous cords coming off the braiding spindles.
-                </span>
-              </div>
-
-              {/* Live Spindle Waste Calculation Card */}
-              <div className="p-3 bg-factory-dark rounded-lg border border-factory-darkBorder space-y-1.5 text-xs">
-                <div className="flex justify-between text-factory-crimson font-medium">
-                  <span>Phase 1 Spindle Yarn Waste:</span>
-                  <span className="font-mono font-bold">{b2Calculations.wasteKg.toFixed(2)} KG ({b2Calculations.wastePct.toFixed(1)}%)</span>
-                </div>
-                <div className="flex justify-between text-blue-400 font-semibold">
-                  <span>Braiding Yield Efficiency:</span>
-                  <span className="font-mono">{b2Calculations.yieldPct.toFixed(1)}%</span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.1"
+                    value={b2BraidedWeight}
+                    onChange={(e) => setB2BraidedWeight(e.target.value)}
+                    required
+                    className="w-full px-3 py-1.5 bg-factory-dark border border-factory-darkBorder rounded-lg text-sm font-bold font-mono text-factory-paper focus:outline-none focus:border-blue-500 pr-12"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-factory-muted">
+                    KG
+                  </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Live Waste Calculation Card */}
+              <div className="p-2.5 bg-factory-dark rounded-lg border border-factory-darkBorder space-y-1.5 text-xs">
+                <div className="font-semibold text-factory-paper flex items-center gap-1.5 text-[11px]">
+                  <Calculator className="w-3.5 h-3.5 text-blue-400" />
+                  Spindle Loss & Handover Summary:
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-factory-darkBorder">
+                  <div>
+                    <span className="text-[10px] text-factory-muted">Spindle Waste:</span>
+                    <div className="text-xs font-bold font-mono text-factory-crimson">
+                      {b2Calculations.wasteKg.toFixed(2)} KG ({b2Calculations.wastePct.toFixed(1)}%)
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-factory-muted">Phase 1 Yield:</span>
+                    <div className="text-xs font-bold font-mono text-blue-400">
+                      {b2Calculations.yieldPct.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Transferred By</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Transit Handler / Cart</label>
                   <input
                     type="text"
+                    placeholder="e.g. Trolley 02"
                     value={b2TransferredBy}
                     onChange={(e) => setB2TransferredBy(e.target.value)}
-                    placeholder="Floor supervisor"
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2.5 py-1 text-factory-paper text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Handover Notes</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Transfer Notes</label>
                   <input
                     type="text"
+                    placeholder="Inspection note..."
                     value={b2Notes}
                     onChange={(e) => setB2Notes(e.target.value)}
-                    placeholder="Optional transit note"
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2.5 py-1 text-factory-paper text-xs"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-factory-darkBorder/60 shrink-0">
                 <button
                   type="button"
                   onClick={() => setB2Batch(null)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer"
+                  className="w-full sm:w-auto px-3.5 py-1.5 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer text-center text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold flex items-center gap-2 cursor-pointer shadow"
+                  className="w-full sm:w-auto px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow text-xs"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Record Weight & Move to B2
@@ -1619,34 +1697,41 @@ export const ProductionView: React.FC = () => {
 
       {/* MODAL 3: STEP 3 - Weigh Finished Shoelaces & Move to Store */}
       {storeBatch && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
+        <div
+          onClick={() => setStoreBatch(null)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-lg w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
               <div>
-                <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                   <Warehouse className="w-4 h-4 text-emerald-400" />
                   Step 3: Weigh Finished Shoelaces & Move to Store
                 </h2>
-                <p className="text-[11px] text-factory-muted">
+                <p className="text-[10px] sm:text-[11px] text-factory-muted">
                   Record tipped lace weight, finalize factory yield %, and pack into store sacks.
                 </p>
               </div>
               <button
                 onClick={() => setStoreBatch(null)}
-                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer"
+                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1 rounded hover:bg-factory-dark"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            {actionError && (
-              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs">
-                {actionError}
-              </div>
-            )}
+            <form onSubmit={handleMoveToStoreSubmit} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 text-xs scrollbar-thin">
+              {actionError && (
+                <div className="p-2.5 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs">
+                  {actionError}
+                </div>
+              )}
 
-            <form onSubmit={handleMoveToStoreSubmit} className="space-y-4 text-xs">
-              <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-factory-muted block text-[10px]">Production Run:</span>
                   <span className="font-mono font-bold text-factory-amber">{storeBatch.batch_number}</span>
@@ -1667,7 +1752,7 @@ export const ProductionView: React.FC = () => {
 
               {/* Finished Shoelaces Scale Weight */}
               <div>
-                <label className="block text-factory-muted mb-1 font-medium">
+                <label className="block text-factory-muted mb-0.5 font-medium text-[11px]">
                   Weighed Finished Shoelaces Output (KG) *
                 </label>
                 <input
@@ -1676,7 +1761,7 @@ export const ProductionView: React.FC = () => {
                   min="0.1"
                   value={storeFinishedWeight}
                   onChange={(e) => setStoreFinishedWeight(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-emerald-400 font-mono font-bold text-sm focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-1.5 text-emerald-400 font-mono font-bold text-sm focus:outline-none focus:border-emerald-400"
                   required
                   autoFocus
                 />
@@ -1686,25 +1771,25 @@ export const ProductionView: React.FC = () => {
               </div>
 
               {/* Live Waste & Yield Recalculation Card */}
-              <div className="p-3 bg-factory-dark rounded-lg border border-factory-darkBorder space-y-1.5 text-xs">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+              <div className="p-2.5 bg-factory-dark rounded-lg border border-factory-darkBorder space-y-1 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] sm:text-[11px]">
                   <div>
-                    <span className="text-factory-muted block">Step 1 Spindle:</span>
+                    <span className="text-factory-muted block text-[9px]">Step 1 Spindle:</span>
                     <span className="font-mono text-factory-crimson font-medium">{storeCalculations.p1Waste.toFixed(2)} KG</span>
                   </div>
                   <div>
-                    <span className="text-factory-muted block">Step 2 Tipping:</span>
+                    <span className="text-factory-muted block text-[9px]">Step 2 Tipping:</span>
                     <span className="font-mono text-factory-crimson font-medium">{storeCalculations.p2Waste.toFixed(2)} KG</span>
                   </div>
                   <div>
-                    <span className="text-factory-muted block">Total Waste:</span>
+                    <span className="text-factory-muted block text-[9px]">Total Waste:</span>
                     <span className="font-mono text-factory-crimson font-bold">
                       {storeCalculations.totalWaste.toFixed(2)} KG ({storeCalculations.wastePct.toFixed(1)}%)
                     </span>
                   </div>
                   <div>
-                    <span className="text-factory-muted block">Factory Yield:</span>
-                    <span className="font-mono text-emerald-400 font-bold text-sm">
+                    <span className="text-factory-muted block text-[9px]">Factory Yield:</span>
+                    <span className="font-mono text-emerald-400 font-bold text-xs">
                       {storeCalculations.yieldPct.toFixed(1)}%
                     </span>
                   </div>
@@ -1712,33 +1797,33 @@ export const ProductionView: React.FC = () => {
               </div>
 
               {/* Weigh & Pack Finished Sacks into Store */}
-              <div className="bg-factory-dark/60 p-3.5 rounded-lg border border-factory-darkBorder space-y-3">
+              <div className="bg-factory-dark/60 p-2.5 sm:p-3 rounded-lg border border-factory-darkBorder space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-factory-paper font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                    <span className="text-factory-paper font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
                       <Package className="w-3.5 h-3.5 text-emerald-400" />
                       Pack Finished Sacks into Store
                     </span>
                     <p className="text-[10px] text-factory-muted">
-                      Pack as much as you want into finished sacks — all weighed sacks count directly from this production batch.
+                      Pack as much as you want into finished sacks.
                     </p>
                   </div>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-factory-amber">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-factory-amber">
                     <input
                       type="checkbox"
                       checked={packSackDirectly}
                       onChange={(e) => setPackSackDirectly(e.target.checked)}
                       className="rounded border-factory-darkBorder accent-factory-amber"
                     />
-                    <span>Pack Sacks to Store Now</span>
+                    <span>Pack Now</span>
                   </label>
                 </div>
 
                 {packSackDirectly && (
-                  <div className="space-y-3 pt-1">
+                  <div className="space-y-2 pt-1">
                     {/* Quick Distribution Helpers */}
-                    <div className="flex flex-wrap items-center gap-1.5 bg-factory-dark p-2 rounded-lg border border-factory-darkBorder">
-                      <span className="text-[10px] text-factory-muted mr-1">Quick Presets:</span>
+                    <div className="flex flex-wrap items-center gap-1 bg-factory-dark p-1.5 rounded-lg border border-factory-darkBorder">
+                      <span className="text-[10px] text-factory-muted mr-0.5">Quick:</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1747,36 +1832,36 @@ export const ProductionView: React.FC = () => {
                           const equalWeight = (fin / count).toFixed(2);
                           setStoreSackWeights(Array(count).fill(equalWeight));
                         }}
-                        className="px-2 py-0.5 rounded text-[10px] bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber font-mono font-medium transition-colors cursor-pointer"
+                        className="px-1.5 py-0.5 rounded text-[10px] bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber font-mono font-medium transition-colors cursor-pointer"
                       >
-                        Auto-Split into 32 KG Sacks
+                        Auto 32kg
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           setStoreSackWeights([storeFinishedWeight || '32.00']);
                         }}
-                        className="px-2 py-0.5 rounded text-[10px] bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber font-mono font-medium transition-colors cursor-pointer"
+                        className="px-1.5 py-0.5 rounded text-[10px] bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber font-mono font-medium transition-colors cursor-pointer"
                       >
-                        Single Sack ({storeFinishedWeight} KG)
+                        Single Sack
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           setStoreSackWeights((prev) => [...prev, '32.00']);
                         }}
-                        className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                        className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                       >
-                        <Plus className="w-2.5 h-2.5" /> Add Another Sack
+                        <Plus className="w-2.5 h-2.5" /> Add Sack
                       </button>
                     </div>
 
                     {/* Sack Inputs List */}
-                    <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                       {storeSackWeights.map((sw, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-factory-dark p-2 rounded-lg border border-factory-darkBorder">
-                          <span className="text-[10px] font-mono text-factory-muted w-14 shrink-0">
-                            Sack #{idx + 1}:
+                        <div key={idx} className="flex items-center gap-1.5 bg-factory-dark p-1.5 rounded border border-factory-darkBorder">
+                          <span className="text-[10px] font-mono text-factory-muted w-12 shrink-0">
+                            #{idx + 1}:
                           </span>
                           <div className="flex-1 flex items-center gap-1">
                             <input
@@ -1789,8 +1874,8 @@ export const ProductionView: React.FC = () => {
                                 updated[idx] = e.target.value;
                                 setStoreSackWeights(updated);
                               }}
-                              placeholder="Weight in KG"
-                              className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2.5 py-1 text-factory-paper font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
+                              placeholder="Weight"
+                              className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-0.5 text-factory-paper font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
                               required
                             />
                             <span className="text-[10px] text-factory-muted font-mono shrink-0">KG</span>
@@ -1812,37 +1897,37 @@ export const ProductionView: React.FC = () => {
                     </div>
 
                     {/* Live Packed vs Finished Tally */}
-                    <div className="p-2 bg-factory-dark rounded border border-factory-darkBorder/80 flex flex-col sm:flex-row justify-between items-start sm:items-center text-[11px] gap-2">
-                      <div className="flex items-center gap-3">
+                    <div className="p-1.5 bg-factory-dark rounded border border-factory-darkBorder/80 flex flex-col sm:flex-row justify-between items-start sm:items-center text-[10px] gap-1">
+                      <div className="flex items-center gap-2">
                         <span className="text-factory-muted">
-                          Sacks to Store: <strong className="text-factory-paper font-mono">{storeSackWeights.length}</strong>
+                          Sacks: <strong className="text-factory-paper font-mono">{storeSackWeights.length}</strong>
                         </span>
                         <span className="text-factory-muted">
-                          Total Packed: <strong className="text-emerald-400 font-mono">
+                          Packed: <strong className="text-emerald-400 font-mono">
                             {storeSackWeights.reduce((sum, w) => sum + (parseFloat(w) || 0), 0).toFixed(2)} KG
                           </strong>
                         </span>
                       </div>
-                      <div className="text-[10px]">
+                      <div>
                         {parseFloat(storeFinishedWeight) > storeSackWeights.reduce((sum, w) => sum + (parseFloat(w) || 0), 0) ? (
                           <span className="text-factory-amber font-medium">
-                            Remaining unpacked: {(parseFloat(storeFinishedWeight) - storeSackWeights.reduce((sum, w) => sum + (parseFloat(w) || 0), 0)).toFixed(2)} KG
+                            Remaining: {(parseFloat(storeFinishedWeight) - storeSackWeights.reduce((sum, w) => sum + (parseFloat(w) || 0), 0)).toFixed(2)} KG
                           </span>
                         ) : (
                           <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> All {storeFinishedWeight} KG accounted for
+                            <CheckCircle2 className="w-2.5 h-2.5" /> All accounted for
                           </span>
                         )}
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-factory-muted mb-1 font-medium">Store Shelf Location</label>
+                      <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Store Shelf Location</label>
                       <input
                         type="text"
                         value={storeLocation}
                         onChange={(e) => setStoreLocation(e.target.value)}
-                        className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper focus:outline-none focus:border-emerald-400 text-xs"
+                        className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper focus:outline-none focus:border-emerald-400 text-xs"
                         required={packSackDirectly}
                       />
                     </div>
@@ -1850,18 +1935,18 @@ export const ProductionView: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-factory-darkBorder/60 shrink-0">
                 <button
                   type="button"
                   onClick={() => setStoreBatch(null)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer"
+                  className="w-full sm:w-auto px-3.5 py-1.5 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer text-center text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold flex items-center gap-2 cursor-pointer shadow"
+                  className="w-full sm:w-auto px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow text-xs"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Save Weight & Move to Store
@@ -1874,158 +1959,214 @@ export const ProductionView: React.FC = () => {
 
       {/* MODAL 4: Pack Additional Store Sack (Strictly 25.00 - 40.00 KG) */}
       {showPackModal && selectedBatch && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
-              <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
+        <div
+          onClick={() => setShowPackModal(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
+              <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-400" />
                 Pack Additional Shoe Lace Sack
               </h2>
               <button
                 onClick={() => setShowPackModal(false)}
-                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer"
+                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1 rounded hover:bg-factory-dark"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-factory-muted">Production Run:</span>
-                <span className="font-semibold text-factory-amber">{selectedBatch.batch_number}</span>
-              </div>
-              <div className="text-factory-paper font-medium">{selectedBatch.product_name}</div>
-              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-factory-darkBorder/60 text-[11px]">
-                <div>
-                  <span className="text-factory-muted block">Finished Output:</span>
-                  <span className="font-mono text-factory-paper font-semibold">{selectedBatch.finished_output_kg} KG</span>
-                </div>
-                <div>
-                  <span className="text-factory-muted block">In Store:</span>
-                  <span className="font-mono text-emerald-400 font-semibold">{selectedBatch.total_packed_kg || '0.00'} KG ({selectedBatch.bag_count || 0} sacks)</span>
-                </div>
-                <div>
-                  <span className="text-factory-muted block">Remaining to Pack:</span>
-                  <span className="font-mono text-factory-amber font-semibold">{selectedBatch.remaining_unpacked_kg || '0.00'} KG</span>
-                </div>
-              </div>
-            </div>
+            {(() => {
+              const remainingNum = parseFloat(selectedBatch.remaining_unpacked_kg || '0');
+              const isBatchFullyPacked = remainingNum <= 0.001;
 
-            {packError && (
-              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{packError}</span>
-              </div>
-            )}
+              return (
+                <form onSubmit={handlePackAdditionalSack} className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3 text-xs scrollbar-thin">
+                  <div className="bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-factory-muted">Production Run:</span>
+                      <span className="font-semibold text-factory-amber">{selectedBatch.batch_number}</span>
+                    </div>
+                    <div className="text-factory-paper font-medium">{selectedBatch.product_name}</div>
+                    <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-factory-darkBorder/60 text-[10px]">
+                      <div>
+                        <span className="text-factory-muted block">Finished Output:</span>
+                        <span className="font-mono text-factory-paper font-semibold">{selectedBatch.finished_output_kg} KG</span>
+                      </div>
+                      <div>
+                        <span className="text-factory-muted block">In Store:</span>
+                        <span className="font-mono text-emerald-400 font-semibold">{selectedBatch.total_packed_kg || '0.00'} KG ({selectedBatch.bag_count || 0} sacks)</span>
+                      </div>
+                      <div>
+                        <span className="text-factory-muted block">Remaining:</span>
+                        <span className={`font-mono font-semibold ${isBatchFullyPacked ? 'text-emerald-400' : 'text-factory-amber'}`}>
+                          {selectedBatch.remaining_unpacked_kg || '0.00'} KG
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-            <form onSubmit={handlePackAdditionalSack} className="space-y-4 text-xs">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-factory-muted font-medium">Sack Scale Weight (KG) *</label>
-                  <div className="flex gap-1">
-                    {parseFloat(selectedBatch.remaining_unpacked_kg || '0') > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setBagWeight(selectedBatch.remaining_unpacked_kg || '32.00')}
-                        className="text-[10px] px-2 py-0.5 bg-factory-darkCard border border-factory-darkBorder text-factory-amber hover:border-factory-amber rounded font-mono cursor-pointer"
-                      >
-                        Pack Remaining ({selectedBatch.remaining_unpacked_kg} KG)
-                      </button>
-                    )}
+                  {isBatchFullyPacked && (
+                    <div className="p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-emerald-300">All Packs Extracted & Submitted</span>
+                        <span className="text-[11px] text-emerald-200/90 block mt-0.5">
+                          All finished shoelaces ({selectedBatch.finished_output_kg || '0.00'} KG) from batch {selectedBatch.batch_number} have already been packed into {selectedBatch.bag_count || 0} store sacks. No more packs can be extracted from this batch.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {packError && (
+                    <div className="p-2.5 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{packError}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-factory-muted font-medium text-[11px]">Sack Scale Weight (KG) *</label>
+                      <div className="flex gap-1">
+                        {!isBatchFullyPacked && remainingNum > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setBagWeight(selectedBatch.remaining_unpacked_kg || '32.00')}
+                            className="text-[10px] px-1.5 py-0.5 bg-factory-darkCard border border-factory-darkBorder text-factory-amber hover:border-factory-amber rounded font-mono cursor-pointer"
+                          >
+                            Remaining ({selectedBatch.remaining_unpacked_kg}k)
+                          </button>
+                        )}
+                        {!isBatchFullyPacked && (
+                          <button
+                            type="button"
+                            onClick={() => setBagWeight('32.00')}
+                            className="text-[10px] px-1.5 py-0.5 bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber rounded font-mono cursor-pointer"
+                          >
+                            32.00 KG
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.1"
+                      disabled={isBatchFullyPacked}
+                      value={bagWeight}
+                      onChange={(e) => setBagWeight(e.target.value)}
+                      className={`w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-1.5 text-factory-paper font-semibold text-sm focus:outline-none focus:border-emerald-400 font-mono ${isBatchFullyPacked ? 'opacity-50 cursor-not-allowed bg-factory-darkBorder/20' : ''
+                        }`}
+                      required
+                    />
+                    <p className="text-[10px] text-factory-muted mt-0.5">
+                      {isBatchFullyPacked
+                        ? 'Batch has 0.00 KG remaining. No more packs can be extracted.'
+                        : 'Pack as much weight as needed. The sack will be registered into warehouse store inventory.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Store Shelf Location</label>
+                    <input
+                      type="text"
+                      disabled={isBatchFullyPacked}
+                      value={packStoreLocation}
+                      onChange={(e) => setPackStoreLocation(e.target.value)}
+                      className={`w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper focus:outline-none focus:border-emerald-400 text-xs ${isBatchFullyPacked ? 'opacity-50 cursor-not-allowed bg-factory-darkBorder/20' : ''
+                        }`}
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-factory-darkBorder/60 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setBagWeight('32.00')}
-                      className="text-[10px] px-2 py-0.5 bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber rounded font-mono cursor-pointer"
+                      onClick={() => setShowPackModal(false)}
+                      className="w-full sm:w-auto px-3.5 py-1.5 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer text-center text-xs"
                     >
-                      32.00 KG
+                      {isBatchFullyPacked ? 'Close' : 'Cancel'}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting || isBatchFullyPacked}
+                      className={`w-full sm:w-auto px-4 py-1.5 rounded-lg font-semibold flex items-center justify-center gap-2 shadow text-xs ${isBatchFullyPacked
+                          ? 'bg-factory-darkBorder/50 text-factory-muted/60 border border-factory-darkBorder cursor-not-allowed'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+                        }`}
+                      title={isBatchFullyPacked ? 'No more packs can be extracted from this batch' : 'Save Sack to Store'}
+                    >
+                      {isBatchFullyPacked ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          No More Packs Can Be Extracted
+                        </>
+                      ) : (
+                        <>
+                          {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                          Save Sack to Store
+                        </>
+                      )}
                     </button>
                   </div>
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  value={bagWeight}
-                  onChange={(e) => setBagWeight(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-semibold text-sm focus:outline-none focus:border-emerald-400 font-mono"
-                  required
-                />
-                <p className="text-[11px] text-factory-muted mt-1">
-                  Pack as much weight as needed. The sack will be registered into warehouse store inventory and counted against this batch.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-factory-muted mb-1 font-medium">Store Shelf Location</label>
-                <input
-                  type="text"
-                  value={packStoreLocation}
-                  onChange={(e) => setPackStoreLocation(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-emerald-400"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPackModal(false)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold flex items-center gap-2 shadow cursor-pointer"
-                >
-                  {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  Save Sack to Store
-                </button>
-              </div>
-            </form>
+                </form>
+              );
+            })()}
           </div>
         </div>
       )}
 
       {/* MODAL 5: EDIT Production Batch (Flexibility to Fix Amounts) */}
       {editingBatch && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
+        <div
+          onClick={() => setEditingBatch(null)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-xl w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
               <div>
-                <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                   <Pencil className="w-4 h-4 text-factory-amber" />
                   Edit Production Run: {editingBatch.batch_number}
                 </h2>
-                <p className="text-[11px] text-factory-muted">
+                <p className="text-[10px] sm:text-[11px] text-factory-muted">
                   Correct any weight, material, or status if a wrong amount was entered.
                 </p>
               </div>
               <button
                 onClick={() => setEditingBatch(null)}
-                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer"
+                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1 rounded hover:bg-factory-dark"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            {actionError && (
-              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
+            <form onSubmit={handleSaveEdit} className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3 text-xs scrollbar-thin">
+              {actionError && (
+                <div className="p-2.5 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{actionError}</span>
+                </div>
+              )}
 
-            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
               {/* Product & Status */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Shoe Lace Product</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Shoe Lace Product</label>
                   <select
                     value={editFormData.product_variant}
                     onChange={(e) => setEditFormData({ ...editFormData, product_variant: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1 text-factory-paper text-xs"
                     required
                   >
                     {variants.map((v) => (
@@ -2036,11 +2177,11 @@ export const ProductionView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Run Status</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Run Status</label>
                   <select
                     value={editFormData.status}
                     onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper font-mono font-semibold"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1 text-factory-paper font-mono font-semibold text-xs"
                   >
                     <option value="PLANNED">PLANNED</option>
                     <option value="IN_PROGRESS">1. IN PROGRESS (Braiding B1)</option>
@@ -2052,12 +2193,12 @@ export const ProductionView: React.FC = () => {
               </div>
 
               {/* Weight Stages (Step 1 & Step 2) */}
-              <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder space-y-3">
+              <div className="bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-factory-amber uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-factory-amber uppercase tracking-wider block">
                     Measured Weights Across Lifecycle (KG)
                   </span>
-                  <div className="flex items-center gap-1.5 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[10px]">
                     <span className="text-factory-muted">Store Batches (32 KG):</span>
                     <input
                       type="number"
@@ -2072,13 +2213,13 @@ export const ProductionView: React.FC = () => {
                           raw_yarn_input_kg: (val * 32).toFixed(2)
                         });
                       }}
-                      className="w-12 bg-factory-darkCard border border-factory-darkBorder rounded px-1.5 py-0.5 text-center text-factory-paper font-mono font-bold text-xs"
+                      className="w-10 bg-factory-darkCard border border-factory-darkBorder rounded px-1 py-0.5 text-center text-factory-paper font-mono font-bold text-xs"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div>
-                    <label className="block text-factory-muted mb-1 font-medium">Initial Yarn (KG)</label>
+                    <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Initial Yarn (KG)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -2092,43 +2233,43 @@ export const ProductionView: React.FC = () => {
                           yarn_batch_count: count
                         });
                       }}
-                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-semibold font-mono"
+                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-semibold font-mono text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-factory-muted mb-1 font-medium">Braided (KG)</label>
+                    <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Braided (KG)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={editFormData.braided_output_kg}
                       onChange={(e) => setEditFormData({ ...editFormData, braided_output_kg: e.target.value })}
-                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-semibold font-mono"
+                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-semibold font-mono text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-factory-muted mb-1 font-medium">Tipping In (KG)</label>
+                    <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Tipping In (KG)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={editFormData.tipping_input_kg}
                       onChange={(e) => setEditFormData({ ...editFormData, tipping_input_kg: e.target.value })}
-                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-semibold font-mono"
+                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-semibold font-mono text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-factory-muted mb-1 font-medium">Finished (KG)</label>
+                    <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Finished (KG)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={editFormData.finished_output_kg}
                       onChange={(e) => setEditFormData({ ...editFormData, finished_output_kg: e.target.value })}
-                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-emerald-400 font-bold font-mono"
+                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-emerald-400 font-bold font-mono text-xs"
                     />
                   </div>
                 </div>
 
                 {/* Live Recalculated Preview Card */}
-                <div className="mt-2 p-2.5 bg-factory-darkCard rounded border border-factory-darkBorder/60 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="p-2 bg-factory-darkCard rounded border border-factory-darkBorder/60 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
                   <div>
                     <span className="text-factory-muted block">Step 1 Spindle:</span>
                     <span className="font-mono text-factory-crimson font-semibold">
@@ -2157,13 +2298,13 @@ export const ProductionView: React.FC = () => {
               </div>
 
               {/* Raw Materials (Yarn, Acetone, Film Roll) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Assigned Yarn</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Assigned Yarn</label>
                   <select
                     value={editFormData.raw_material_yarn}
                     onChange={(e) => setEditFormData({ ...editFormData, raw_material_yarn: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1.5 text-factory-paper text-[11px]"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper text-[10px]"
                   >
                     <option value="">-- Standard Yarn --</option>
                     {yarnVariants.map((y) => (
@@ -2174,22 +2315,22 @@ export const ProductionView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Acetone (Liters)</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Acetone (Liters)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={editFormData.acetone_used}
                     onChange={(e) => setEditFormData({ ...editFormData, acetone_used: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1.5 text-factory-paper font-mono text-[11px]"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Film Roll Used</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Film Roll Used</label>
                   <div className="flex items-center gap-1">
                     <select
                       value={editFormData.film_roll_variant}
                       onChange={(e) => setEditFormData({ ...editFormData, film_roll_variant: e.target.value })}
-                      className="w-2/3 bg-factory-dark border border-factory-darkBorder rounded px-1.5 py-1.5 text-factory-paper text-[10px]"
+                      className="w-2/3 bg-factory-dark border border-factory-darkBorder rounded px-1.5 py-1 text-factory-paper text-[10px]"
                     >
                       <option value="">-- Film Roll --</option>
                       {filmVariants.map((f) => (
@@ -2204,46 +2345,46 @@ export const ProductionView: React.FC = () => {
                       value={editFormData.film_roll_used}
                       onChange={(e) => setEditFormData({ ...editFormData, film_roll_used: e.target.value })}
                       placeholder="Rolls"
-                      className="w-1/3 bg-factory-dark border border-factory-darkBorder rounded px-1.5 py-1.5 text-factory-paper text-[11px] font-mono"
+                      className="w-1/3 bg-factory-dark border border-factory-darkBorder rounded px-1.5 py-1 text-factory-paper text-xs font-mono"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Supervisor & Notes */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Supervisor</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Supervisor</label>
                   <input
                     type="text"
                     value={editFormData.supervisor}
                     onChange={(e) => setEditFormData({ ...editFormData, supervisor: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2.5 py-1 text-factory-paper text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Notes</label>
+                  <label className="block text-factory-muted mb-0.5 font-medium text-[10px]">Notes</label>
                   <input
                     type="text"
                     value={editFormData.notes}
                     onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper"
+                    className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2.5 py-1 text-factory-paper text-xs"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-factory-darkBorder/60 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingBatch(null)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer"
+                  className="w-full sm:w-auto px-3.5 py-1.5 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer text-center text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-factory-amber hover:bg-factory-amberDark text-black rounded-lg font-semibold flex items-center gap-2 cursor-pointer shadow"
+                  className="w-full sm:w-auto px-4 py-1.5 bg-factory-amber hover:bg-factory-amberDark text-black rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow text-xs"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Save Changes
@@ -2256,48 +2397,56 @@ export const ProductionView: React.FC = () => {
 
       {/* MODAL 6: Delete Confirmation */}
       {deletingBatch && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
-            <div className="flex items-center gap-3 text-factory-crimson">
-              <span className="p-2.5 rounded-full bg-factory-crimson/20 border border-factory-crimson/40">
-                <AlertTriangle className="w-5 h-5" />
+        <div
+          onClick={() => setDeletingBatch(null)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex items-center gap-2.5 text-factory-crimson shrink-0 bg-factory-darkCard/95">
+              <span className="p-1.5 rounded-full bg-factory-crimson/20 border border-factory-crimson/40 shrink-0">
+                <AlertTriangle className="w-4 h-4" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-factory-paper">Delete Production Run</h3>
-                <p className="text-xs text-factory-muted">Remove this batch record.</p>
+                <h3 className="text-sm sm:text-base font-bold text-factory-paper">Delete Production Run</h3>
+                <p className="text-[10px] text-factory-muted">Remove this batch record permanently.</p>
               </div>
             </div>
 
-            {actionError && (
-              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs">
-                {actionError}
-              </div>
-            )}
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-2.5 text-xs scrollbar-thin">
+              {actionError && (
+                <div className="p-2.5 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs">
+                  {actionError}
+                </div>
+              )}
 
-            <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-factory-muted">Run Number:</span>
-                <span className="font-mono font-bold text-factory-amber">{deletingBatch.batch_number}</span>
+              <div className="bg-factory-dark p-2.5 rounded-lg border border-factory-darkBorder text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Run Number:</span>
+                  <span className="font-mono font-bold text-factory-amber">{deletingBatch.batch_number}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Product:</span>
+                  <span className="font-semibold text-factory-paper">{deletingBatch.product_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-factory-muted">Yarn Input:</span>
+                  <span className="font-mono text-factory-paper">{deletingBatch.raw_yarn_input_kg} KG</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-factory-muted">Product:</span>
-                <span className="font-semibold text-factory-paper">{deletingBatch.product_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-factory-muted">Yarn Input:</span>
-                <span className="font-mono text-factory-paper">{deletingBatch.raw_yarn_input_kg} KG</span>
-              </div>
+
+              <p className="text-xs text-factory-muted">
+                Are you sure you want to delete this run? You can use this anytime if wrong amounts were entered.
+              </p>
             </div>
 
-            <p className="text-xs text-factory-muted">
-              Are you sure you want to delete this run? You can use this anytime if wrong amounts were entered.
-            </p>
-
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="px-4 py-2 sm:px-5 sm:py-2.5 border-t border-factory-darkBorder flex flex-col-reverse sm:flex-row justify-end gap-2 shrink-0 bg-factory-darkCard/95">
               <button
                 type="button"
                 onClick={() => setDeletingBatch(null)}
-                className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper text-xs cursor-pointer"
+                className="w-full sm:w-auto px-3.5 py-1.5 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper text-xs cursor-pointer text-center"
               >
                 Cancel
               </button>
@@ -2305,7 +2454,7 @@ export const ProductionView: React.FC = () => {
                 type="button"
                 onClick={handleDeleteBatch}
                 disabled={submitting}
-                className="px-4 py-2 bg-factory-crimson hover:bg-factory-crimson/80 text-white rounded-lg text-xs font-semibold flex items-center gap-2 cursor-pointer shadow"
+                className="w-full sm:w-auto px-4 py-1.5 bg-factory-crimson hover:bg-factory-crimson/80 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow"
               >
                 {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 Yes, Delete Run
@@ -2317,27 +2466,34 @@ export const ProductionView: React.FC = () => {
 
       {/* MODAL 7: Full Batch Inspection / Lifecycle View */}
       {inspectingBatch && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
+        <div
+          onClick={() => setInspectingBatch(null)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-2xl w-full flex flex-col max-h-[92vh] sm:max-h-[86vh] shadow-2xl animate-fade-in overflow-hidden cursor-default"
+          >
+            <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
               <div>
-                <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                   <Eye className="w-4 h-4 text-factory-amber" />
                   Lifecycle Details: {inspectingBatch.batch_number}
                 </h2>
-                <p className="text-[11px] text-factory-muted">
+                <p className="text-[10px] sm:text-[11px] text-factory-muted">
                   Full step-by-step audit of materials, weights, and factory yields.
                 </p>
               </div>
               <button
                 onClick={() => setInspectingBatch(null)}
-                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer"
+                className="text-factory-muted hover:text-factory-paper text-sm cursor-pointer p-1 rounded hover:bg-factory-dark"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3 text-xs scrollbar-thin">
               {/* Product & Header Stats */}
               <div className="bg-factory-dark p-4 rounded-xl border border-factory-darkBorder flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
@@ -2486,9 +2642,14 @@ export const ProductionView: React.FC = () => {
                       <Package className="w-3.5 h-3.5" />
                       Sacks Shipped to Store ({inspectingBatch.bags_list.length} Sacks • {inspectingBatch.total_packed_kg || inspectingBatch.finished_output_kg} KG)
                     </span>
-                    {parseFloat(inspectingBatch.remaining_unpacked_kg || '0') > 0 && (
-                      <span className="text-[10px] text-factory-amber font-mono">
-                        Remaining: {inspectingBatch.remaining_unpacked_kg} KG
+                    {parseFloat(inspectingBatch.remaining_unpacked_kg || '0') > 0 ? (
+                      <span className="text-[10px] text-factory-amber font-mono font-medium">
+                        Remaining to Pack: {inspectingBatch.remaining_unpacked_kg} KG
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        Fully Packed & Submitted (0.00 KG Unpacked)
                       </span>
                     )}
                   </div>
@@ -2543,11 +2704,11 @@ export const ProductionView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="px-4 py-2 sm:px-5 sm:py-2.5 border-t border-factory-darkBorder flex justify-end shrink-0 bg-factory-darkCard/95">
               <button
                 type="button"
                 onClick={() => setInspectingBatch(null)}
-                className="px-4 py-2 bg-factory-dark border border-factory-darkBorder rounded-lg text-factory-paper text-xs cursor-pointer hover:bg-factory-darkBorder/40"
+                className="w-full sm:w-auto px-4 py-1.5 bg-factory-dark border border-factory-darkBorder rounded-lg text-factory-paper text-xs cursor-pointer hover:bg-factory-darkBorder/40 text-center"
               >
                 Close
               </button>

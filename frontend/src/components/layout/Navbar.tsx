@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, ShieldAlert, Sun, Moon } from 'lucide-react';
+import { Bell, ShieldAlert, Sun, Moon, Menu, X } from 'lucide-react';
 import { Notification } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -7,41 +7,61 @@ interface NavbarProps {
   notifications: Notification[];
   onOpenNotifications: () => void;
   activeView: string;
+  isMobileMenuOpen?: boolean;
+  onToggleMobileMenu?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   notifications,
   onOpenNotifications,
   activeView,
+  isMobileMenuOpen = false,
+  onToggleMobileMenu,
 }) => {
   const { theme, toggleTheme, isDark } = useTheme();
   const unreadCount = notifications.filter(n => !n.is_read).length;
   const criticalCount = notifications.filter(n => !n.is_read && n.severity === 'CRITICAL').length;
 
   return (
-    <header className="h-16 bg-factory-darkCard border-b border-factory-darkBorder px-6 flex items-center justify-between sticky top-0 z-30 shadow-md transition-colors duration-200">
+    <header className="h-16 bg-factory-darkCard border-b border-factory-darkBorder px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-md transition-colors duration-200">
       {/* Brand & Factory Identity */}
-      <div className="flex items-center gap-3">
-        <div className="relative group">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile Menu Toggle Button */}
+        {onToggleMobileMenu && (
+          <button
+            onClick={onToggleMobileMenu}
+            className="p-2 rounded-lg lg:hidden bg-factory-dark border border-factory-darkBorder hover:border-factory-secondary/50 text-factory-cream hover:text-factory-secondary transition-colors cursor-pointer shrink-0"
+            title={isMobileMenuOpen ? "Close navigation menu" : "Open factory navigation menu"}
+            aria-label="Toggle navigation menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5 text-factory-secondary" />
+            ) : (
+              <Menu className="w-5 h-5 text-factory-cream" />
+            )}
+          </button>
+        )}
+
+        <div className="relative group shrink-0 hidden xs:block">
           <img
             src="/logo.png"
             alt="Ali Bori Shoe Lace Factory Logo"
-            className="w-11 h-11 rounded-full object-contain bg-factory-canvas p-0.5 border border-factory-secondary shadow-sm transition-transform duration-200 group-hover:scale-105"
+            className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-contain bg-factory-canvas p-0.5 border border-factory-secondary shadow-sm transition-transform duration-200 group-hover:scale-105"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-bold text-base text-factory-cream tracking-wide font-heading">
-              ALI BORI SHOE LACE FACTORY
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <h1 className="font-bold text-xs sm:text-sm md:text-base text-factory-cream tracking-wide font-heading truncate">
+              ALI BORI SHOE LACE
             </h1>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-factory-primary/20 text-factory-secondary border border-factory-secondary/30 rounded">
+            <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-factory-primary/20 text-factory-secondary border border-factory-secondary/30 rounded shrink-0">
               Factory Manager
             </span>
           </div>
-          <p className="text-xs text-factory-muted hidden sm:block">
+          <p className="text-[11px] text-factory-muted hidden md:block truncate">
             Daily Factory Operations, Manufacturing & Inventory
           </p>
         </div>
@@ -55,12 +75,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>{criticalCount} Urgent Attention</span>
           </div>
         )}
-
-        {/* Friendly Online Status */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 text-xs rounded-full">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-medium">System Online</span>
-        </div>
 
         {/* Theme Toggle Button */}
         <button

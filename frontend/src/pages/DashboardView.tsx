@@ -44,12 +44,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ metrics, isLoading
     <div className="space-y-6 pb-12">
       {/* Top Banner Alert if Critical issues exist */}
       {(metrics.alerts.critical_count > 0 || metrics.machines.critical > 0) && (
-        <div className="bg-red-500/10 dark:bg-red-950/40 border border-red-500/30 dark:border-red-800/80 rounded-xl p-4 flex items-center justify-between shadow-sm">
+        <div className="bg-red-500/10 dark:bg-red-950/40 border border-red-500/30 dark:border-red-800/80 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0 animate-pulse" />
+            <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400 shrink-0 animate-pulse" />
             <div>
-              <h3 className="font-bold text-sm text-red-800 dark:text-red-200 font-heading">Attention Required</h3>
-              <p className="text-xs text-red-700/80 dark:text-red-300/80 mt-0.5">
+              <h3 className="font-bold text-xs sm:text-sm text-red-800 dark:text-red-200 font-heading">Attention Required</h3>
+              <p className="text-[11px] sm:text-xs text-red-700/80 dark:text-red-300/80 mt-0.5">
                 {metrics.machines.critical > 0 && `${metrics.machines.critical} Machine(s) in CRITICAL state. `}
                 {metrics.alerts.critical_count > 0 && `${metrics.alerts.critical_count} urgent message(s) pending.`}
               </p>
@@ -57,7 +57,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ metrics, isLoading
           </div>
           <button
             onClick={() => onNavigate('machines')}
-            className="px-3 py-1.5 bg-red-700 hover:bg-red-600 dark:bg-red-800 dark:hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow transition-colors"
+            className="w-full sm:w-auto text-center px-3 py-1.5 bg-red-700 hover:bg-red-600 dark:bg-red-800 dark:hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow transition-colors cursor-pointer"
           >
             Check Machines →
           </button>

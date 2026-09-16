@@ -55,8 +55,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end transition-opacity">
-      <div className="w-full max-w-md bg-factory-darkCard border-l border-factory-darkBorder h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end transition-opacity cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-factory-darkCard border-l border-factory-darkBorder h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200 cursor-default"
+      >
         {/* Header */}
         <div className="p-4 border-b border-factory-darkBorder flex items-center justify-between bg-factory-dark/60">
           <div className="flex items-center gap-2">

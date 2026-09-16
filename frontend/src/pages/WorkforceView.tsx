@@ -165,7 +165,7 @@ export const WorkforceView: React.FC = () => {
       {/* Employees Table */}
       <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[850px] whitespace-nowrap">
             <thead>
               <tr className="bg-factory-dark/60 text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono border-b border-factory-darkBorder">
                 <th className="py-3 px-4">Employee ID</th>
@@ -229,8 +229,14 @@ export const WorkforceView: React.FC = () => {
 
       {/* MODAL: Register Laborer */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+        <div
+          onClick={() => setShowAddModal(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl animate-fade-in max-h-[94vh] sm:max-h-[90vh] overflow-y-auto cursor-default"
+          >
             <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
               <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                 <Users className="w-4 h-4 text-factory-amber" />
@@ -314,18 +320,18 @@ export const WorkforceView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper"
+                  className="w-full sm:w-auto px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Register Laborer

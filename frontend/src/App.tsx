@@ -39,6 +39,7 @@ const queryClient = new QueryClient({
 const AppContent: React.FC = () => {
   const [activeView, setActiveView] = useState<string>('dashboard');
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Load dashboard metrics with fast caching
   const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = useQuery<DashboardMetrics>({
@@ -89,8 +90,9 @@ const AppContent: React.FC = () => {
       case 'dashboard':
         return <DashboardView metrics={metrics || null} isLoading={metricsLoading} onNavigate={setActiveView} />;
       case 'production':
+        return <ProductionView initialTab="all" />;
       case 'transfers':
-        return <ProductionView />;
+        return <ProductionView initialTab="transfers" />;
       case 'store_bags':
         return <StoreView />;
       case 'raw_materials':
@@ -137,13 +139,20 @@ const AppContent: React.FC = () => {
         notifications={notifications}
         onOpenNotifications={() => setIsNotificationOpen(true)}
         activeView={activeView}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
       />
 
       {/* Main Layout: Sidebar + View Content */}
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar activeView={activeView} setActiveView={setActiveView} />
+      <div className="flex-1 flex overflow-hidden relative">
+        <Sidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          isOpenMobile={isMobileMenuOpen}
+          onCloseMobile={() => setIsMobileMenuOpen(false)}
+        />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 space-y-4 sm:space-y-6 w-full min-w-0">
           {renderActiveView()}
         </main>
       </div>

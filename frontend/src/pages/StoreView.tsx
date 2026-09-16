@@ -241,7 +241,7 @@ export const StoreView: React.FC = () => {
       {/* Bags Table */}
       <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[860px] whitespace-nowrap">
             <thead>
               <tr className="bg-factory-dark/60 text-[11px] font-bold text-factory-muted uppercase tracking-wider border-b border-factory-darkBorder">
                 <th className="py-3 px-4">Sack Tag #</th>
@@ -347,8 +347,14 @@ export const StoreView: React.FC = () => {
 
       {/* MODAL: Add Manual Finished Bag */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+        <div
+          onClick={() => setShowAddModal(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-factory-darkCard border border-factory-darkBorder rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl animate-fade-in max-h-[94vh] sm:max-h-[90vh] overflow-y-auto cursor-default"
+          >
             <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
               <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
                 <Package className="w-4 h-4 text-factory-amber" />
@@ -387,29 +393,42 @@ export const StoreView: React.FC = () => {
                   className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
                 >
                   <option value="">-- Standalone / No Linked Run --</option>
-                  {batches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.batch_number} — {b.product_name} ({b.status}) {b.remaining_unpacked_kg ? `[${b.remaining_unpacked_kg} KG Unpacked]` : ''}
-                    </option>
-                  ))}
+                  {batches.map((b) => {
+                    const rem = parseFloat(b.remaining_unpacked_kg || '0');
+                    const isFullyPacked = (b.status === 'COMPLETED' || parseFloat(b.total_packed_kg || '0') > 0) && rem <= 0.001;
+                    return (
+                      <option key={b.id} value={b.id} disabled={isFullyPacked}>
+                        {b.batch_number} — {b.product_name} ({b.status}) {isFullyPacked ? '[FULLY PACKED - 0.00 KG REMAINING]' : b.remaining_unpacked_kg ? `[${b.remaining_unpacked_kg} KG Unpacked]` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
                 {newBag.batch && (() => {
                   const b = batches.find(x => x.id === newBag.batch);
                   if (!b) return null;
                   const remainingNum = parseFloat(b.remaining_unpacked_kg || '0');
+                  const isFullyPacked = (b.status === 'COMPLETED' || parseFloat(b.total_packed_kg || '0') > 0) && remainingNum <= 0.001;
                   return (
-                    <div className="mt-1.5 p-2 rounded bg-factory-dark border border-factory-darkBorder flex items-center justify-between text-[11px]">
-                      <span className="text-factory-muted">
-                        Batch Output: <b className="text-factory-paper">{b.finished_output_kg || '0.00'} KG</b> | Packed: <b className="text-emerald-400">{b.total_packed_kg || '0.00'} KG</b>
-                      </span>
-                      {remainingNum > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setNewBag(prev => ({ ...prev, weight_kg: remainingNum.toFixed(2) }))}
-                          className="text-factory-amber underline font-medium cursor-pointer"
-                        >
-                          Fill Remaining ({remainingNum.toFixed(2)} KG)
-                        </button>
+                    <div className="mt-1.5 p-2 rounded bg-factory-dark border border-factory-darkBorder flex flex-col gap-1.5 text-[11px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-factory-muted">
+                          Batch Output: <b className="text-factory-paper">{b.finished_output_kg || '0.00'} KG</b> | Packed: <b className="text-emerald-400">{b.total_packed_kg || '0.00'} KG</b>
+                        </span>
+                        {!isFullyPacked && remainingNum > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setNewBag(prev => ({ ...prev, weight_kg: remainingNum.toFixed(2) }))}
+                            className="text-factory-amber underline font-medium cursor-pointer"
+                          >
+                            Fill Remaining ({remainingNum.toFixed(2)} KG)
+                          </button>
+                        )}
+                      </div>
+                      {isFullyPacked && (
+                        <div className="text-emerald-400 font-medium flex items-center gap-1.5 pt-1 border-t border-factory-darkBorder/60">
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Batch has been 100% packed and submitted. No more packs can be extracted from this batch.</span>
+                        </div>
                       )}
                     </div>
                   );
@@ -480,23 +499,44 @@ export const StoreView: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center gap-2 cursor-pointer shadow"
-                >
-                  {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  Save Sack to Store
-                </button>
-              </div>
+              {(() => {
+                const selectedBatchObj = batches.find(x => x.id === newBag.batch);
+                const isSelectedBatchFullyPacked = !!selectedBatchObj && ((selectedBatchObj.status === 'COMPLETED' || parseFloat(selectedBatchObj.total_packed_kg || '0') > 0) && parseFloat(selectedBatchObj.remaining_unpacked_kg || '0') <= 0.001);
+
+                return (
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="w-full sm:w-auto px-4 py-2 border border-factory-darkBorder rounded-lg text-factory-muted hover:text-factory-paper cursor-pointer text-center"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting || isSelectedBatchFullyPacked}
+                      className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow ${
+                        isSelectedBatchFullyPacked
+                          ? 'bg-factory-darkBorder/50 text-factory-muted/60 border border-factory-darkBorder cursor-not-allowed'
+                          : 'bg-factory-rust hover:bg-factory-rustLight text-white cursor-pointer'
+                      }`}
+                      title={isSelectedBatchFullyPacked ? 'No more packs can be extracted from this batch' : 'Save Sack to Store'}
+                    >
+                      {isSelectedBatchFullyPacked ? (
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                          Batch Fully Packed (Cannot Extract)
+                        </>
+                      ) : (
+                        <>
+                          {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                          Save Sack to Store
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })()}
             </form>
           </div>
         </div>

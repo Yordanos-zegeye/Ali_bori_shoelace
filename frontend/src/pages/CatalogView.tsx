@@ -122,7 +122,7 @@ export const CatalogView: React.FC = () => {
       {/* Variants Table */}
       <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[800px] whitespace-nowrap">
             <thead>
               <tr className="bg-factory-dark/60 text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono border-b border-factory-darkBorder">
                 <th className="py-3 px-4">Serial Code</th>
