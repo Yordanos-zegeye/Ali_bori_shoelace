@@ -1,5 +1,17 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-
+const resolveApiBaseUrl = (): string => {
+  const rawUrl = (
+    import.meta.env.VITE_API_BASE_URL ||
+    'https://ali-bori-shoelace.onrender.com/api/v1'
+  ).trim();
+  // Strip trailing slashes
+  const cleanUrl = rawUrl.replace(/\/+$/, '');
+  // Ensure /api/v1 is present
+  if (cleanUrl.endsWith('/api/v1')) {
+    return cleanUrl;
+  }
+  return `${cleanUrl}/api/v1`;
+};
+export const API_BASE_URL = resolveApiBaseUrl();
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -23,7 +35,12 @@ export async function apiRequest<T>(
     } catch {
       errorData = { detail: response.statusText };
     }
-    const err = new Error(errorData.detail || errorData.error || `Request failed with status ${response.status}`);
+    const message =
+      errorData.detail ||
+      errorData.error ||
+      errorData.message ||
+      (typeof errorData === 'string' ? errorData : `Request failed with status ${response.status}`);
+    const err = new Error(message);
     (err as any).data = errorData;
     (err as any).status = response.status;
     throw err;
