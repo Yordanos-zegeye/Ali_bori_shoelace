@@ -345,10 +345,12 @@ export interface DashboardMetrics {
   };
   production: {
     today_input_kg: number;
+    today_braided_output_kg?: number;
     today_output_kg: number;
     today_waste_kg: number;
     waste_percentage: number;
     yield_percentage: number;
+    today_batch_count?: number;
   };
   wip: {
     building_1_kg: number;
@@ -386,3 +388,34 @@ export interface DashboardMetrics {
     low_spares_count: number;
   };
 }
+
+export type UserRole = 'super_admin' | 'factory_monitor' | 'store';
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: UserRole;
+  role_display: string;
+  is_superuser: boolean;
+  is_active: boolean;
+  phone_number?: string;
+  store_name?: string;
+  department?: string;
+  customer_id?: string;
+  customer_name?: string;
+  customer_code?: string;
+  customer?: Customer;
+  date_joined?: string;
+  created_at?: string;
+}
+
+export interface AuthResponse {
+  access: string;
+  refresh: string;
+  user: User;
+}
+

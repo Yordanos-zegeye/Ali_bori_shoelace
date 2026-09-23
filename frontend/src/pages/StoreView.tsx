@@ -5,8 +5,10 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { FinishedProductBag, ProductVariant, ProductionBatch } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const StoreView: React.FC = () => {
+  const { isStore } = useAuth();
   const [bags, setBags] = useState<FinishedProductBag[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [batches, setBatches] = useState<ProductionBatch[]>([]);
@@ -14,7 +16,7 @@ export const StoreView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Create Manual Bag Modal
+  // Create Manual Bag Modal (Admins & Factory staff only)
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBag, setNewBag] = useState({
     product_variant: '',
@@ -28,14 +30,20 @@ export const StoreView: React.FC = () => {
   const fetchBags = async () => {
     try {
       setLoading(true);
-      const [bagsRes, variantsRes, batchesRes] = await Promise.all([
+      const promises: [Promise<any>, Promise<any>, Promise<any>?] = [
         api.get<any>('/store/bags/'),
         api.get<any>('/catalog/variants/'),
-        api.get<any>('/production/batches/')
-      ]);
+      ];
+      if (!isStore) {
+        promises.push(api.get<any>('/production/batches/'));
+      }
+
+      const [bagsRes, variantsRes, batchesRes] = await Promise.all(promises);
       setBags(bagsRes.results || bagsRes);
       setVariants(variantsRes.results || variantsRes);
-      setBatches(batchesRes.results || batchesRes);
+      if (batchesRes) {
+        setBatches(batchesRes.results || batchesRes);
+      }
     } catch (err) {
       console.error('Failed to load store bags', err);
     } finally {
@@ -134,11 +142,13 @@ export const StoreView: React.FC = () => {
               <Package className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
-              Finished Sacks Store
+              {isStore ? 'Finished Goods Warehouse' : 'Finished Sacks Store'}
             </h1>
           </div>
           <p className="text-xs text-factory-muted mt-1">
-            Finished shoe lace sacks ready for customer orders. Each sack has a unique tag, can be packed flexibly from production runs, and is tracked until delivery.
+            {isStore
+              ? 'Browse available finished shoe lace sacks in the warehouse ready for ordering and delivery.'
+              : 'Finished shoe lace sacks ready for customer orders. Each sack has a unique tag, can be packed flexibly from production runs, and is tracked until delivery.'}
           </p>
         </div>
 
@@ -150,13 +160,15 @@ export const StoreView: React.FC = () => {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            + Add New Sack
-          </button>
+          {!isStore && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              + Add New Sack
+            </button>
+          )}
         </div>
       </div>
 
@@ -325,13 +337,15 @@ export const StoreView: React.FC = () => {
                                 <CheckCircle className="w-3 h-3" />
                                 Available
                               </span>
-                              <button
-                                onClick={() => handleDeleteBag(bag)}
-                                className="p-1 text-factory-muted hover:text-factory-crimson hover:bg-factory-crimson/10 rounded transition-colors cursor-pointer"
-                                title="Delete/remove this sack from store"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {!isStore && (
+                                <button
+                                  onClick={() => handleDeleteBag(bag)}
+                                  className="p-1 text-factory-muted hover:text-factory-crimson hover:bg-factory-crimson/10 rounded transition-colors cursor-pointer"
+                                  title="Delete/remove this sack from store"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -345,8 +359,8 @@ export const StoreView: React.FC = () => {
         </div>
       </div>
 
-      {/* MODAL: Add Manual Finished Bag */}
-      {showAddModal && (
+      {/* MODAL: Add Manual Finished Bag (Admin Only) */}
+      {showAddModal && !isStore && (
         <div
           onClick={() => setShowAddModal(false)}
           className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"

@@ -5,8 +5,10 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { DispatchOrder, Customer, FinishedProductBag } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const DispatchView: React.FC = () => {
+  const { user, isStore } = useAuth();
   const [orders, setOrders] = useState<DispatchOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [availableBags, setAvailableBags] = useState<FinishedProductBag[]>([]);
@@ -43,6 +45,13 @@ export const DispatchView: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // For store / customer role, automatically lock to their customer record
+  useEffect(() => {
+    if (isStore && customers.length > 0 && !selectedCustomer) {
+      setSelectedCustomer(customers[0]);
+    }
+  }, [isStore, customers, selectedCustomer]);
 
   // Compute live order statistics for the modal
   const selectedBags = availableBags.filter((b) => selectedBagIds.includes(b.id));
@@ -135,11 +144,13 @@ export const DispatchView: React.FC = () => {
               <ArrowUpRight className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
-              Send Orders (Customer Dispatches)
+              {isStore ? 'My Orders & Dispatches' : 'Send Orders (Customer Dispatches)'}
             </h1>
           </div>
           <p className="text-xs text-factory-muted mt-1">
-            Assign finished shoe lace sacks to customer orders with customer credit check and protection against double-shipping.
+            {isStore
+              ? 'Track finished shoelace orders shipped to your business, payment status, and order details.'
+              : 'Assign finished shoe lace sacks to customer orders with customer credit check and protection against double-shipping.'}
           </p>
         </div>
 
@@ -152,11 +163,16 @@ export const DispatchView: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              if (isStore && customers.length > 0) {
+                setSelectedCustomer(customers[0]);
+              }
+              setShowCreateModal(true);
+            }}
             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            + New Customer Dispatch
+            {isStore ? '+ Place New Order' : '+ New Customer Dispatch'}
           </button>
         </div>
       </div>
@@ -327,23 +343,34 @@ export const DispatchView: React.FC = () => {
             <form onSubmit={handleCreateDispatch} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Select Customer</label>
-                  <select
-                    value={selectedCustomer?.id || ''}
-                    onChange={(e) => {
-                      const cust = customers.find((c) => c.id === e.target.value) || null;
-                      setSelectedCustomer(cust);
-                    }}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
-                    required
-                  >
-                    <option value="">-- Choose Customer --</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} (Outstanding: {parseFloat(c.current_outstanding || '0').toFixed(0)} / Limit: {parseFloat(c.credit_limit || '0').toFixed(0)})
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-factory-muted mb-1 font-medium">Customer Account</label>
+                  {isStore ? (
+                    <div className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 flex items-center justify-between">
+                      <span className="font-semibold text-factory-paper">
+                        {selectedCustomer?.name || user?.customer_name || 'My Customer Account'}
+                      </span>
+                      <span className="font-mono text-factory-amber text-xs">
+                        {selectedCustomer?.customer_code || user?.customer_code || 'CUST-001'}
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedCustomer?.id || ''}
+                      onChange={(e) => {
+                        const cust = customers.find((c) => c.id === e.target.value) || null;
+                        setSelectedCustomer(cust);
+                      }}
+                      className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
+                      required
+                    >
+                      <option value="">-- Choose Customer --</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} (Outstanding: {parseFloat(c.current_outstanding || '0').toFixed(0)} / Limit: {parseFloat(c.credit_limit || '0').toFixed(0)})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>

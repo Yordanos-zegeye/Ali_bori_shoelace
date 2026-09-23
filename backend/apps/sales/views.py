@@ -55,23 +55,71 @@ class DispatchOrderSerializer(serializers.ModelSerializer):
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
-    queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     filterset_fields = ['customer_type', 'active']
     search_fields = ['customer_code', 'name', 'phone', 'contact_person']
     ordering_fields = ['name', 'current_outstanding', 'credit_limit']
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated and hasattr(user, 'profile') and user.profile.role == 'store':
+            customer = user.profile.get_customer()
+            if customer:
+                return Customer.objects.filter(id=customer.id)
+            return Customer.objects.none()
+        return Customer.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts are not permitted to register new customers.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts are not permitted to modify customer profiles.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts are not permitted to delete customer profiles.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
 
 class DispatchOrderViewSet(viewsets.ModelViewSet):
-    queryset = DispatchOrder.objects.all().select_related('customer').prefetch_related('items__bag', 'receivable__payments')
     serializer_class = DispatchOrderSerializer
     filterset_fields = ['status', 'payment_mode', 'customer']
     search_fields = ['order_number', 'customer__name']
     ordering_fields = ['-created_at', 'order_number']
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = DispatchOrder.objects.all().select_related('customer').prefetch_related('items__bag', 'receivable__payments')
+        if user.is_authenticated and hasattr(user, 'profile') and user.profile.role == 'store':
+            customer = user.profile.get_customer()
+            if customer:
+                return qs.filter(customer=customer)
+            return qs.none()
+        return qs
+
     def create(self, request, *args, **kwargs):
         data = request.data
-        customer_id = data.get('customer_id') or data.get('customer')
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            customer_obj = request.user.profile.get_customer()
+            if not customer_obj:
+                return Response({'error': 'No customer account is linked to your user profile.'}, status=status.HTTP_400_BAD_REQUEST)
+            customer_id = customer_obj.id
+        else:
+            customer_id = data.get('customer_id') or data.get('customer')
+
         payment_mode = data.get('payment_mode', DispatchOrder.PaymentMode.CASH)
         bag_items = data.get('items', [])  # list of {bag_id, price_per_kg}
         amount_paid = Decimal(str(data.get('amount_paid', 0)))
@@ -257,15 +305,33 @@ class DispatchOrderViewSet(viewsets.ModelViewSet):
 
 
 class ReceivableViewSet(viewsets.ModelViewSet):
-    queryset = Receivable.objects.all().select_related('customer', 'dispatch_order').prefetch_related('payments')
     serializer_class = ReceivableSerializer
     filterset_fields = ['status', 'customer']
     search_fields = ['dispatch_order__order_number', 'customer__name']
     ordering_fields = ['-created_at', 'due_date', 'remaining_amount']
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = Receivable.objects.all().select_related('customer', 'dispatch_order').prefetch_related('payments')
+        if user.is_authenticated and hasattr(user, 'profile') and user.profile.role == 'store':
+            customer = user.profile.get_customer()
+            if customer:
+                return qs.filter(customer=customer)
+            return qs.none()
+        return qs
+
 
 class PaymentRecordViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = PaymentRecord.objects.all().select_related('receivable__customer', 'receivable__dispatch_order')
     serializer_class = PaymentRecordSerializer
     filterset_fields = ['payment_method', 'payment_date']
     ordering_fields = ['-payment_date', '-created_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = PaymentRecord.objects.all().select_related('receivable__customer', 'receivable__dispatch_order')
+        if user.is_authenticated and hasattr(user, 'profile') and user.profile.role == 'store':
+            customer = user.profile.get_customer()
+            if customer:
+                return qs.filter(receivable__customer=customer)
+            return qs.none()
+        return qs

@@ -30,6 +30,12 @@ class FinishedProductBagViewSet(viewsets.ModelViewSet):
     ordering_fields = ['-entry_date', 'bag_id', 'weight_kg']
 
     def create(self, request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts cannot register sacks into warehouse inventory.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         from decimal import Decimal
         from django.db.models import Sum
         from apps.production.models import ProductionBatch
@@ -75,6 +81,12 @@ class FinishedProductBagViewSet(viewsets.ModelViewSet):
             bag.batch.save()
 
     def destroy(self, request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts cannot remove sacks from warehouse inventory.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         instance = self.get_object()
         if instance.status == FinishedProductBag.Status.DISPATCHED:
             return Response(
@@ -101,6 +113,11 @@ class FinishedProductBagViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def transfer_location(self, request, pk=None):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts cannot modify warehouse shelf locations.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         bag = self.get_object()
         new_loc = request.data.get('destination_location')
         if not new_loc:

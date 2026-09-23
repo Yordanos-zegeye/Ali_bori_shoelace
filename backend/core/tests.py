@@ -83,23 +83,22 @@ class AliBoriShoelaceERPTests(TestCase):
         )
         self.assertEqual(bag_40.weight_kg, Decimal('40.00'))
 
-        # Reject 24.99 KG
+        # Reject 0.00 KG and negative
         with self.assertRaises(ValidationError):
-            bag_low = FinishedProductBag(
-                bag_id="ABSL-TEST-000024",
+            bag_zero = FinishedProductBag(
+                bag_id="ABSL-TEST-000000",
                 product_variant=self.variant,
-                weight_kg=Decimal('24.99')
+                weight_kg=Decimal('0.00')
             )
-            bag_low.clean()
+            bag_zero.clean()
 
-        # Reject 40.01 KG
         with self.assertRaises(ValidationError):
-            bag_high = FinishedProductBag(
-                bag_id="ABSL-TEST-000041",
+            bag_neg = FinishedProductBag(
+                bag_id="ABSL-TEST-000001",
                 product_variant=self.variant,
-                weight_kg=Decimal('40.01')
+                weight_kg=Decimal('-5.00')
             )
-            bag_high.clean()
+            bag_neg.clean()
 
     def test_production_waste_and_yield_calculation(self):
         """
@@ -259,3 +258,84 @@ class AliBoriShoelaceERPTests(TestCase):
         self.assertEqual(receivable.amount_paid, Decimal('100000.00'))
         self.assertEqual(receivable.remaining_amount, Decimal('0.00'))
         self.assertEqual(receivable.status, Receivable.Status.SETTLED)
+
+    def test_dashboard_analytics_batch_efficiency_averaging(self):
+        """
+        Analytics Dashboard Rule:
+        Batch production efficiency must take the average of each batch production,
+        and not simply add them together.
+        Batch 1: 100 kg input -> 90 kg finished (90.00% yield, 10.00% waste)
+        Batch 2: 100 kg input -> 86 kg finished (86.00% yield, 14.00% waste)
+        Expected average: 88.0% yield (NOT 176.00% sum!) and 12.0% waste.
+        """
+        from core.analytics_view import DashboardAnalyticsView
+        today = date.today()
+
+        batch1 = ProductionBatch.objects.create(
+            batch_number="TEST-BATCH-AVG-1",
+            product_variant=self.variant,
+            status=ProductionBatch.Status.COMPLETED,
+            raw_yarn_input_kg=Decimal('100.00'),
+            braided_output_kg=Decimal('95.00'),
+            tipping_input_kg=Decimal('95.00'),
+            finished_output_kg=Decimal('90.00'),
+            completion_date=today
+        )
+        batch2 = ProductionBatch.objects.create(
+            batch_number="TEST-BATCH-AVG-2",
+            product_variant=self.variant,
+            status=ProductionBatch.Status.COMPLETED,
+            raw_yarn_input_kg=Decimal('100.00'),
+            braided_output_kg=Decimal('93.00'),
+            tipping_input_kg=Decimal('93.00'),
+            finished_output_kg=Decimal('86.00'),
+            completion_date=today
+        )
+
+        res = DashboardAnalyticsView().get(None)
+        prod = res.data['production']
+
+        # Must be average (88.0%), NEVER simply added together (176.0%)
+        self.assertEqual(prod['yield_percentage'], 88.0)
+        self.assertEqual(prod['waste_percentage'], 12.0)
+        self.assertEqual(prod['today_batch_count'], 2)
+
+    def test_dashboard_analytics_historical_completed_batches_average_not_summed(self):
+        """
+        When no batches are produced today, the dashboard should report the
+        average yield across historical completed batches (never Sum).
+        """
+        from datetime import timedelta
+        from core.analytics_view import DashboardAnalyticsView
+        past_date = date.today() - timedelta(days=5)
+
+        ProductionBatch.objects.create(
+            batch_number="PAST-BATCH-1",
+            product_variant=self.variant,
+            status=ProductionBatch.Status.COMPLETED,
+            raw_yarn_input_kg=Decimal('100.00'),
+            braided_output_kg=Decimal('96.00'),
+            tipping_input_kg=Decimal('96.00'),
+            finished_output_kg=Decimal('92.00'),
+            completion_date=past_date
+        )
+        ProductionBatch.objects.create(
+            batch_number="PAST-BATCH-2",
+            product_variant=self.variant,
+            status=ProductionBatch.Status.COMPLETED,
+            raw_yarn_input_kg=Decimal('100.00'),
+            braided_output_kg=Decimal('94.00'),
+            tipping_input_kg=Decimal('94.00'),
+            finished_output_kg=Decimal('88.00'),
+            completion_date=past_date
+        )
+
+        res = DashboardAnalyticsView().get(None)
+        prod = res.data['production']
+
+        # Average of 92.0 and 88.0 is 90.0, NOT 180.0!
+        self.assertEqual(prod['yield_percentage'], 90.0)
+        self.assertEqual(prod['waste_percentage'], 10.0)
+        self.assertEqual(prod['today_batch_count'], 0)
+
+

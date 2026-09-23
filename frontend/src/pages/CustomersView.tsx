@@ -6,12 +6,15 @@ import {
 import { api } from '../api/client';
 import { Customer } from '../types';
 
+import { useAuth } from '../context/AuthContext';
+
 export const CustomersView: React.FC = () => {
+  const { user, role, isStore } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Add Customer Modal
+  // Add Customer Modal (Admins only)
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
     name: '',
@@ -41,6 +44,7 @@ export const CustomersView: React.FC = () => {
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isStore) return;
     try {
       setSubmitting(true);
       await api.post('/sales/customers/', newCustomer);
@@ -74,6 +78,12 @@ export const CustomersView: React.FC = () => {
   const totalCreditLimit = customers.reduce((sum, c) => sum + parseFloat(c.credit_limit || '0'), 0);
   const highRiskCustomers = customers.filter((c) => (c.credit_utilization_percent || 0) >= 80);
 
+  const activeCustomer = customers[0];
+  const myLimit = activeCustomer ? parseFloat(activeCustomer.credit_limit || '0') : 0;
+  const myOutstanding = activeCustomer ? parseFloat(activeCustomer.current_outstanding || '0') : 0;
+  const myAvailable = activeCustomer ? parseFloat(activeCustomer.available_credit || '0') : Math.max(0, myLimit - myOutstanding);
+  const myUtil = activeCustomer ? (activeCustomer.credit_utilization_percent ?? (myLimit > 0 ? (myOutstanding / myLimit) * 100 : 0)) : 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -84,11 +94,13 @@ export const CustomersView: React.FC = () => {
               <Users className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
-              Customer Accounts & Credit Control
+              {isStore ? 'My Customer Account & Credit Control' : 'Customer Accounts & Credit Control'}
             </h1>
           </div>
           <p className="text-xs text-factory-muted mt-1">
-            Track customer wholesale accounts, contact numbers, credit limits, and unpaid balances.
+            {isStore
+              ? `Account details for ${user?.customer_name || 'your wholesale business'}. Track your approved credit limit and outstanding balances.`
+              : 'Track customer wholesale accounts, contact numbers, credit limits, and unpaid balances.'}
           </p>
         </div>
 
@@ -100,48 +112,96 @@ export const CustomersView: React.FC = () => {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            + Register New Customer
-          </button>
+          {!isStore && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              + Register New Customer
+            </button>
+          )}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
-          <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
-            Active Accounts
+      {isStore ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Customer Account
+            </div>
+            <div className="text-lg font-bold text-factory-paper font-heading truncate mt-1">
+              {activeCustomer?.name || user?.customer_name || 'Wholesale Client'}
+            </div>
+            <div className="text-xs font-mono text-factory-amber mt-1">
+              Code: {activeCustomer?.customer_code || user?.customer_code || 'CUST-001'}
+            </div>
           </div>
-          <div className="text-2xl font-bold text-factory-paper mt-1">
-            {customers.length}
-          </div>
-          <div className="text-xs text-factory-muted mt-1">Trading wholesale clients</div>
-        </div>
 
-        <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
-          <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
-            Total Unpaid Balance
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Approved Credit Limit
+            </div>
+            <div className="text-2xl font-bold font-mono text-factory-paper mt-1">
+              {myLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+            </div>
+            <div className="text-xs text-factory-muted mt-1">Maximum allowed credit balance</div>
           </div>
-          <div className="text-2xl font-bold text-factory-crimson mt-1">
-            {totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-          </div>
-          <div className="text-xs text-factory-muted mt-1">Money to collect from customers</div>
-        </div>
 
-        <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
-          <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
-            Near Credit Limit (&gt;80%)
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Current Outstanding Balance
+            </div>
+            <div className="text-2xl font-bold font-mono text-factory-crimson mt-1">
+              {myOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+            </div>
+            <div className="text-xs text-factory-muted mt-1">Total pending payment to factory</div>
           </div>
-          <div className={`text-2xl font-bold mt-1 ${highRiskCustomers.length > 0 ? 'text-factory-amber' : 'text-emerald-400'}`}>
-            {highRiskCustomers.length}
+
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Available Credit to Order
+            </div>
+            <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+              {myAvailable.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+            </div>
+            <div className="text-xs text-factory-muted mt-1">Remaining allowance ({myUtil.toFixed(0)}% used)</div>
           </div>
-          <div className="text-xs text-factory-muted mt-1">High credit risk accounts</div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Active Accounts
+            </div>
+            <div className="text-2xl font-bold text-factory-paper mt-1">
+              {customers.length}
+            </div>
+            <div className="text-xs text-factory-muted mt-1">Trading wholesale clients</div>
+          </div>
+
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Total Unpaid Balance
+            </div>
+            <div className="text-2xl font-bold text-factory-crimson mt-1">
+              {totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+            </div>
+            <div className="text-xs text-factory-muted mt-1">Money to collect from customers</div>
+          </div>
+
+          <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
+            <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
+              Near Credit Limit (&gt;80%)
+            </div>
+            <div className={`text-2xl font-bold mt-1 ${highRiskCustomers.length > 0 ? 'text-factory-amber' : 'text-emerald-400'}`}>
+              {highRiskCustomers.length}
+            </div>
+            <div className="text-xs text-factory-muted mt-1">High credit risk accounts</div>
+          </div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="relative max-w-md">
@@ -240,8 +300,8 @@ export const CustomersView: React.FC = () => {
         </div>
       </div>
 
-      {/* MODAL: Register Customer */}
-      {showAddModal && (
+      {/* MODAL: Register Customer (Admin Only) */}
+      {showAddModal && !isStore && (
         <div
           onClick={() => setShowAddModal(false)}
           className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 cursor-pointer"

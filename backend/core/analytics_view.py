@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.utils import timezone
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, Avg, F, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -15,6 +15,12 @@ from apps.notifications.models import Notification
 
 class DashboardAnalyticsView(APIView):
     def get(self, request):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'store':
+            return Response(
+                {'error': 'Customer accounts do not have authorization to view internal company analytics.'},
+                status=403
+            )
+
         today = timezone.now().date()
 
         # 1. Raw Materials - Database aggregate
@@ -32,14 +38,50 @@ class DashboardAnalyticsView(APIView):
             waste=Sum('waste_kg')
         )
         today_input_kg = p1_agg['inp'] or Decimal('0.00')
+        today_braided_output_kg = p1_agg['out'] or Decimal('0.00')
         today_output_kg = p2_agg['out'] or Decimal('0.00')
         today_total_waste_kg = (p1_agg['waste'] or Decimal('0.00')) + (p2_agg['waste'] or Decimal('0.00'))
 
-        yield_pct = round((float(today_output_kg) / float(today_input_kg)) * 100, 1) if today_input_kg > 0 else 0.0
-        waste_pct = round((float(today_total_waste_kg) / float(today_input_kg)) * 100, 1) if today_input_kg > 0 else 0.0
+        # Daily production efficiency: average of each batch production rather than simply summing or adding
+        today_p1_batch_ids = list(Phase1BraidingRecord.objects.filter(date=today).values_list('batch_id', flat=True))
+        today_p2_batch_ids = list(Phase2TippingRecord.objects.filter(date=today).values_list('batch_id', flat=True))
+        today_completed_batch_ids = list(ProductionBatch.objects.filter(completion_date=today, status='COMPLETED').values_list('id', flat=True))
+        all_today_batch_ids = list(set(today_p1_batch_ids + today_p2_batch_ids + today_completed_batch_ids))
 
-        # Batch yield average
-        avg_yield = float(ProductionBatch.objects.filter(status='COMPLETED').aggregate(avg=Sum('yield_percentage'))['avg'] or 88.0)
+        today_batch_efficiencies = []
+        today_batch_wastes = []
+        if all_today_batch_ids:
+            today_batches = ProductionBatch.objects.filter(id__in=all_today_batch_ids)
+            for b in today_batches:
+                if b.status == 'COMPLETED' or (b.finished_output_kg and b.finished_output_kg > 0):
+                    eff = float(b.yield_percentage)
+                    waste = float(b.waste_percentage)
+                elif b.raw_yarn_input_kg and b.raw_yarn_input_kg > 0 and b.braided_output_kg and b.braided_output_kg > 0:
+                    eff = round((float(b.braided_output_kg) / float(b.raw_yarn_input_kg)) * 100, 2)
+                    waste = round((float(b.phase1_waste_kg) / float(b.raw_yarn_input_kg)) * 100, 2)
+                else:
+                    eff = None
+                    waste = None
+
+                if eff is not None and eff > 0:
+                    today_batch_efficiencies.append(eff)
+                if waste is not None:
+                    today_batch_wastes.append(waste)
+
+        # Batch yield & waste average across completed batches
+        overall_completed_agg = ProductionBatch.objects.filter(status='COMPLETED').aggregate(
+            avg_yield=Avg('yield_percentage'),
+            avg_waste=Avg('waste_percentage')
+        )
+        avg_batch_yield = float(overall_completed_agg['avg_yield'] or 88.0)
+        avg_batch_waste = float(overall_completed_agg['avg_waste'] or 12.0)
+
+        if today_batch_efficiencies:
+            daily_yield_pct = round(sum(today_batch_efficiencies) / len(today_batch_efficiencies), 1)
+            daily_waste_pct = round(sum(today_batch_wastes) / len(today_batch_wastes), 1) if today_batch_wastes else round(100.0 - daily_yield_pct, 1)
+        else:
+            daily_yield_pct = round(avg_batch_yield, 1)
+            daily_waste_pct = round(avg_batch_waste, 1)
 
         # 3. WIP
         wip_b1 = ProductionBatch.objects.filter(status='PHASE_1_COMPLETE').aggregate(total=Sum('braided_output_kg'))['total'] or Decimal('0.00')
@@ -97,10 +139,12 @@ class DashboardAnalyticsView(APIView):
             },
             'production': {
                 'today_input_kg': float(today_input_kg),
+                'today_braided_output_kg': float(today_braided_output_kg),
                 'today_output_kg': float(today_output_kg),
                 'today_waste_kg': float(today_total_waste_kg),
-                'waste_percentage': float(waste_pct),
-                'yield_percentage': float(yield_pct if today_input_kg > 0 else avg_yield),
+                'waste_percentage': float(daily_waste_pct),
+                'yield_percentage': float(daily_yield_pct),
+                'today_batch_count': len(today_batch_efficiencies),
             },
             'wip': {
                 'building_1_kg': float(wip_b1),

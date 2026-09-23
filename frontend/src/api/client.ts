@@ -1,7 +1,6 @@
 const resolveApiBaseUrl = (): string => {
   const rawUrl = (
-    import.meta.env.VITE_API_BASE_URL ||
-    'https://ali-bori-shoelace.onrender.com/api/v1'
+    import.meta.env.VITE_API_BASE_URL
   ).trim();
   // Strip trailing slashes
   const cleanUrl = rawUrl.replace(/\/+$/, '');
@@ -17,10 +16,16 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
+
   const headers = new Headers(options.headers || {});
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  // Attach JWT Bearer token if present
+  const token = localStorage.getItem('alibori_access_token');
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(url, {

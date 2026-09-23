@@ -129,6 +129,7 @@ router.register(r'audit/movements', UniversalMovementLedgerViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/', include(router.urls)),
     path('api/v1/analytics/dashboard/', DashboardAnalyticsView.as_view(), name='dashboard_analytics'),
     path('api/v1/importer/trigger/', ImporterTriggerView.as_view(), name='importer_trigger'),

@@ -2,8 +2,11 @@ import React from 'react';
 import {
   LayoutDashboard, Factory, ArrowRightLeft, ClipboardList, Package,
   Layers, ShoppingBag, Wrench, Cpu, DollarSign, Users,
-  CalendarCheck, FileText, Sliders, Database, ArrowUpRight, X
+  CalendarCheck, FileText, Sliders, Database, ArrowUpRight, X,
+  ShieldCheck, Store
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 
 interface SidebarProps {
   activeView: string;
@@ -17,6 +20,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: string | number;
+  roles?: UserRole[]; // If undefined, accessible to everyone
 }
 
 interface NavSection {
@@ -30,68 +34,116 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile = false,
   onCloseMobile,
 }) => {
-  const sections: NavSection[] = [
+  const { user, role, isSuperAdmin } = useAuth();
+
+  const allSections: NavSection[] = role === 'store' ? [
+    {
+      title: 'WAREHOUSE',
+      items: [
+        { id: 'store_bags', label: 'Warehouse Finished Sacks', icon: Package, roles: ['store'] },
+        { id: 'finished_goods', label: 'Shoe Lace Catalog', icon: ShoppingBag, roles: ['store'] },
+      ],
+    },
+    {
+      title: 'SALES & ACCOUNT',
+      items: [
+        { id: 'dispatch', label: 'My Orders & Dispatches', icon: ArrowUpRight, roles: ['store'] },
+        { id: 'customers', label: 'My Customer Account & Credit', icon: Users, roles: ['store'] },
+      ],
+    },
+  ] : [
     {
       title: 'OVERVIEW',
       items: [
-        { id: 'dashboard', label: 'Factory Overview', icon: LayoutDashboard },
+        { id: 'dashboard', label: 'Factory Overview', icon: LayoutDashboard, roles: ['super_admin', 'factory_monitor'] },
       ],
     },
     {
       title: 'MAKING SHOE LACES',
       items: [
-        { id: 'production', label: '1. Make Laces (Production)', icon: Factory },
-        { id: 'transfers', label: '2. Move Laces (B1 to B2)', icon: ArrowRightLeft },
-        { id: 'store_bags', label: '3. Finished Sacks (Store)', icon: Package },
-        { id: 'stock_requests', label: 'Request Yarn from Store', icon: ClipboardList },
+        { id: 'production', label: '1. Make Laces (Production)', icon: Factory, roles: ['super_admin', 'factory_monitor'] },
+        { id: 'transfers', label: '2. Move Laces (B1 to B2)', icon: ArrowRightLeft, roles: ['super_admin', 'factory_monitor'] },
+        { id: 'store_bags', label: '3. Finished Sacks (Store)', icon: Package, roles: ['super_admin', 'factory_monitor', 'store'] },
+        { id: 'stock_requests', label: 'Request Yarn from Store', icon: ClipboardList, roles: ['super_admin', 'factory_monitor'] },
       ],
     },
     {
       title: 'WAREHOUSE & MATERIALS',
       items: [
-        { id: 'raw_materials', label: 'Raw Yarn Warehouse', icon: Layers },
-        { id: 'finished_goods', label: 'Shoe Lace Products', icon: ShoppingBag },
-        { id: 'spare_parts', label: 'Machine Spare Parts', icon: Wrench },
+        { id: 'raw_materials', label: 'Raw Yarn Warehouse', icon: Layers, roles: ['super_admin', 'factory_monitor'] },
+        { id: 'finished_goods', label: 'Shoe Lace Products', icon: ShoppingBag, roles: ['super_admin', 'factory_monitor', 'store'] },
+        { id: 'spare_parts', label: 'Machine Spare Parts', icon: Wrench, roles: ['super_admin', 'factory_monitor'] },
       ],
     },
     {
       title: 'SALES & CUSTOMERS',
       items: [
-        { id: 'dispatch', label: 'Send Orders (Dispatch)', icon: ArrowUpRight },
-        { id: 'customers', label: 'Customer Accounts & Credit', icon: Users },
-        { id: 'receivables', label: 'Collect Payments', icon: DollarSign },
+        { id: 'dispatch', label: 'Send Orders (Dispatch)', icon: ArrowUpRight, roles: ['super_admin', 'factory_monitor', 'store'] },
+        { id: 'customers', label: 'Customer Accounts & Credit', icon: Users, roles: ['super_admin', 'factory_monitor', 'store'] },
+        { id: 'receivables', label: 'Collect Payments', icon: DollarSign, roles: ['super_admin'] },
       ],
     },
     {
       title: 'FACTORY MACHINES & TOOLS',
       items: [
-        { id: 'machines', label: 'All 365 Machines', icon: Cpu },
-        { id: 'maintenance', label: 'Repairs & Service Log', icon: Wrench },
-        { id: 'utilities', label: 'Workshop Tools & Scales', icon: Sliders },
+        { id: 'machines', label: 'All 365 Machines', icon: Cpu, roles: ['super_admin', 'factory_monitor'] },
+        { id: 'maintenance', label: 'Repairs & Service Log', icon: Wrench, roles: ['super_admin', 'factory_monitor'] },
+        { id: 'utilities', label: 'Workshop Tools & Scales', icon: Sliders, roles: ['super_admin', 'factory_monitor'] },
       ],
     },
     {
       title: 'WORKERS & SALARIES',
       items: [
-        { id: 'employees', label: 'Factory Workers', icon: Users },
-        { id: 'attendance', label: 'Daily Attendance', icon: CalendarCheck },
-        { id: 'payroll', label: 'Monthly Salaries & Payslips', icon: DollarSign },
+        { id: 'employees', label: 'Factory Workers', icon: Users, roles: ['super_admin'] },
+        { id: 'attendance', label: 'Daily Attendance', icon: CalendarCheck, roles: ['super_admin'] },
+        { id: 'payroll', label: 'Monthly Salaries & Payslips', icon: DollarSign, roles: ['super_admin'] },
       ],
     },
     {
       title: 'MANAGEMENT & SETTINGS',
       items: [
-        { id: 'documents', label: 'Company Documents', icon: FileText },
-        { id: 'settings', label: 'Factory Rules & Theme', icon: Sliders },
-        { id: 'importer', label: 'Update from Excel Sheet', icon: Database },
+        { id: 'users', label: 'User Management & Roles', icon: ShieldCheck, badge: 'Admin', roles: ['super_admin'] },
+        { id: 'documents', label: 'Company Documents', icon: FileText, roles: ['super_admin'] },
+        { id: 'settings', label: 'Factory Rules & Theme', icon: Sliders, roles: ['super_admin'] },
+        { id: 'importer', label: 'Update from Excel Sheet', icon: Database, roles: ['super_admin'] },
       ],
     },
   ];
+
+  // Filter sections and items based on role
+  const sections = allSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (isSuperAdmin) return true;
+        if (!item.roles) return true;
+        return role && item.roles.includes(role);
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const handleItemClick = (id: string) => {
     setActiveView(id);
     onCloseMobile?.();
   };
+
+  const getRoleLabel = () => {
+    switch (role) {
+      case 'super_admin':
+        return { label: 'Super Admin', desc: 'Full Access Granted', color: 'text-purple-400' };
+      case 'factory_monitor':
+        return { label: 'Factory Monitor', desc: 'Production & Dispatches', color: 'text-amber-400' };
+      case 'store':
+      default:
+        return {
+          label: user?.customer_name || 'Customer / Shop',
+          desc: user?.customer_code ? `Account: ${user.customer_code}` : (user?.store_name || 'Retail Wholesale Client'),
+          color: 'text-emerald-400'
+        };
+    }
+  };
+
+  const roleMeta = getRoleLabel();
 
   return (
     <>
@@ -153,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <span className="truncate">{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-factory-dark text-factory-secondary rounded border border-factory-darkBorder">
+                        <span className="text-[10px] px-1.5 py-0.5 bg-factory-dark text-factory-secondary rounded border border-factory-darkBorder font-mono">
                           {item.badge}
                         </span>
                       )}
@@ -165,13 +217,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
 
-        {/* Footer Info */}
+        {/* Footer Info with Active Role */}
         <div className="mt-auto p-3 border-t border-factory-darkBorder text-[11px] text-factory-muted bg-factory-dark/40">
           <div className="font-semibold text-factory-cream/90 flex items-center justify-between">
             <span>Ali Bori Factory</span>
+            <span className={`text-[10px] font-bold font-mono ${roleMeta.color}`}>{roleMeta.label}</span>
           </div>
           <div className="text-[10px] text-factory-muted/80 mt-0.5">
-            All Factory Data Up to Date
+            {roleMeta.desc}
           </div>
         </div>
       </aside>

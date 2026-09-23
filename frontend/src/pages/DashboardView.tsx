@@ -35,7 +35,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ metrics, isLoading
 
   const yieldData = [
     { name: 'Input KG', value: metrics.production.today_input_kg || 100 },
-    { name: 'Braided Output', value: (metrics.production.today_input_kg || 100) * 0.94 },
+    { name: 'Braided Output', value: metrics.production.today_braided_output_kg || ((metrics.production.today_input_kg || 100) * 0.94) },
     { name: 'Finished Output', value: metrics.production.today_output_kg || 88 },
     { name: 'Total Waste', value: metrics.production.today_waste_kg || 12 },
   ];
@@ -96,10 +96,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ metrics, isLoading
             <span className="text-2xl font-bold font-heading text-factory-cream">
               {metrics.production.yield_percentage}%
             </span>
-            <span className="text-xs text-emerald-500 font-medium">Efficiency</span>
+            <span className="text-xs text-emerald-500 font-medium">Avg Batch Efficiency</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-[11px] pt-2 border-t border-factory-darkBorder">
-            <span className="text-factory-muted">Material Waste:</span>
+            <span className="text-factory-muted">
+              {metrics.production.today_batch_count && metrics.production.today_batch_count > 0
+                ? `Waste (${metrics.production.today_batch_count} Batch${metrics.production.today_batch_count > 1 ? 'es' : ''}):`
+                : 'Material Waste:'}
+            </span>
             <span className="text-factory-cream font-mono font-medium">
               {metrics.production.waste_percentage}% ({metrics.production.today_waste_kg} KG)
             </span>
