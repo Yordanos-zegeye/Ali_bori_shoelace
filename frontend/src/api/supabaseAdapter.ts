@@ -799,7 +799,10 @@ async function executeSupabaseRequest<T>(
             .eq('id', body.product_variant)
             .maybeSingle();
           if (pVar) {
-            const colName = (pVar.color_details?.name || '').toLowerCase();
+            // PostgREST returns the many-to-one embed as a single object, but the
+            // untyped supabase client infers an array — cast to the runtime shape.
+            const colorDetails = pVar.color_details as { name?: string } | null;
+            const colName = (colorDetails?.name || '').toLowerCase();
             const { data: matchedYarn } = await supabase
               .from('inventory_raw_materials')
               .select('id')

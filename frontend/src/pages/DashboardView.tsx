@@ -17,6 +17,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ metrics, isLoading
   const { isDark } = useTheme();
   type ProductionTimeframe = 'daily' | 'weekly' | 'monthly';
   type GraphMode = 'daily' | 'weekly' | 'monthly' | 'batches' | 'flow';
+  type GraphDetails = {
+    title: string;
+    subtitle: string;
+    badge: string;
+    data: { name: string; [key: string]: unknown }[];
+  };
 
   const [productionTimeframe, setProductionTimeframe] = useState<ProductionTimeframe>('daily');
   const [graphMode, setGraphMode] = useState<GraphMode>('daily');
@@ -127,7 +133,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ metrics, isLoading
       }))
     : [];
 
-  const getGraphDetails = () => {
+  const getGraphDetails = (): GraphDetails => {
     switch (graphMode) {
       case 'daily':
         return {

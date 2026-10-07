@@ -347,7 +347,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               { key: 'STOCK', label: 'Stock' },
               { key: 'PRODUCTION', label: 'Production' },
               { key: 'CREDIT', label: 'Credit' },
-            ] as const
+            ] as { key: 'ALL' | 'UNREAD' | 'CRITICAL' | 'MACHINES' | 'STOCK' | 'PRODUCTION' | 'CREDIT'; label: string; count?: number; isCritical?: boolean }[]
           ).map((tab) => (
             <button
               key={tab.key}
