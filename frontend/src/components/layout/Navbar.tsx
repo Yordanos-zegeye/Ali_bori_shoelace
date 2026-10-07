@@ -29,8 +29,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-  const criticalCount = notifications.filter(n => !n.is_read && n.severity === 'CRITICAL').length;
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  const unreadCount = safeNotifications.filter(n => !n.is_read).length;
+  const criticalCount = safeNotifications.filter(n => !n.is_read && n.severity === 'CRITICAL').length;
 
   // Close user dropdown when clicking outside
   useEffect(() => {
@@ -49,20 +50,20 @@ export const Navbar: React.FC<NavbarProps> = ({
         return {
           icon: ShieldCheck,
           text: 'Super Admin',
-          color: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+          color: 'bg-factory-dark text-factory-cream border-factory-darkBorder',
         };
       case 'factory_monitor':
         return {
           icon: Factory,
           text: 'Factory Monitor',
-          color: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+          color: 'bg-factory-dark text-factory-secondary border-factory-darkBorder',
         };
       case 'store':
       default:
         return {
           icon: Store,
           text: user?.customer_name ? `Customer: ${user.customer_name}` : 'Customer / Shop',
-          color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+          color: 'bg-factory-dark text-factory-paper border-factory-darkBorder',
         };
     }
   };
@@ -147,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           aria-label="Toggle visual theme"
         >
           {isDark ? (
-            <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" />
+            <Sun className="w-4 h-4 text-factory-secondary animate-spin-slow" />
           ) : (
             <Moon className="w-4 h-4 text-factory-secondary" />
           )}
@@ -162,9 +163,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="relative p-2 rounded-lg bg-factory-dark border border-factory-darkBorder hover:border-factory-secondary/50 text-factory-cream hover:text-factory-secondary transition-all shadow-sm"
           title="Factory Alerts & Messages"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className={`w-4 h-4 ${criticalCount > 0 ? 'text-red-400' : ''}`} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-factory-crimson text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[18px] text-center border-2 border-factory-darkCard">
+            <span
+              className={`absolute -top-1 -right-1 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full min-w-[18px] text-center border-2 border-factory-darkCard ${
+                criticalCount > 0
+                  ? 'bg-red-600 text-white animate-pulse'
+                  : 'bg-factory-primary text-factory-cream'
+              }`}
+            >
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
@@ -217,7 +224,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-factory-cream/90 hover:bg-factory-dark hover:text-factory-secondary transition-colors text-left cursor-pointer"
                   >
-                    <Users className="w-4 h-4 text-purple-400" />
+                    <Users className="w-4 h-4 text-factory-secondary" />
                     <span>Manage Users & Roles</span>
                   </button>
                 )}

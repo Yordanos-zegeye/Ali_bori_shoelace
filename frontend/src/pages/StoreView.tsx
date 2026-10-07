@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Package, Search, Plus, Lock, CheckCircle, 
+import {
+  Package, Search, Plus, Lock, CheckCircle,
   AlertCircle, Barcode, RefreshCw, Trash2
 } from 'lucide-react';
 import { api } from '../api/client';
@@ -15,7 +15,7 @@ export const StoreView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Create Manual Bag Modal (Admins & Factory staff only)
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBag, setNewBag] = useState({
@@ -120,7 +120,7 @@ export const StoreView: React.FC = () => {
 
   const filteredBags = bags.filter((bag) => {
     const matchesStatus = statusFilter === 'ALL' || bag.status === statusFilter;
-    const matchesSearch = 
+    const matchesSearch =
       bag.bag_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (bag.product_name && bag.product_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (bag.store_location && bag.store_location.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -138,7 +138,7 @@ export const StoreView: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-factory-darkCard p-5 rounded-xl border border-factory-darkBorder">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="p-2 rounded-lg bg-factory-secondary/15 text-factory-secondary">
               <Package className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
@@ -166,7 +166,7 @@ export const StoreView: React.FC = () => {
               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              + Add New Sack
+              Add New Sack
             </button>
           )}
         </div>
@@ -178,7 +178,7 @@ export const StoreView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
             Sacks in Store
           </div>
-          <div className="text-2xl font-bold text-emerald-400 mt-1">
+          <div className="text-2xl font-bold text-factory-cream mt-1">
             {inStoreBags.length} <span className="text-xs font-normal text-factory-muted">sacks</span>
           </div>
           <div className="text-xs text-factory-muted mt-1">Available for customer orders</div>
@@ -238,11 +238,10 @@ export const StoreView: React.FC = () => {
             <button
               key={st.id}
               onClick={() => setStatusFilter(st.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                statusFilter === st.id
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${statusFilter === st.id
                   ? 'bg-factory-amber/20 text-factory-amber border border-factory-amber/40 font-semibold'
                   : 'bg-factory-darkCard border border-factory-darkBorder text-factory-muted hover:text-factory-paper'
-              }`}
+                }`}
             >
               {st.label}
             </button>
@@ -313,13 +312,12 @@ export const StoreView: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider ${
-                            bag.status === 'IN_STORE'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider ${bag.status === 'IN_STORE'
+                              ? 'bg-factory-dark text-factory-cream border border-factory-darkBorder'
                               : bag.status === 'DISPATCHED'
-                              ? 'bg-factory-muted/20 text-factory-muted border border-factory-muted/30'
-                              : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
-                          }`}
+                                ? 'bg-factory-dark text-factory-muted border border-factory-darkBorder'
+                                : 'bg-factory-dark text-factory-secondary border border-factory-darkBorder'
+                            }`}
                         >
                           {bag.status === 'IN_STORE' ? 'IN STORE' : bag.status === 'DISPATCHED' ? 'SHIPPED' : 'RESERVED'}
                         </span>
@@ -328,13 +326,13 @@ export const StoreView: React.FC = () => {
                         <div className="flex items-center justify-end gap-2">
                           {isDispatched ? (
                             <span className="inline-flex items-center gap-1 text-[11px] text-factory-muted bg-factory-dark px-2 py-1 rounded border border-factory-darkBorder">
-                              <Lock className="w-3 h-3 text-factory-amber" />
+                              <Lock className="w-3 h-3 text-factory-secondary" />
                               Shipped (Protected)
                             </span>
                           ) : (
                             <>
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                                <CheckCircle className="w-3 h-3" />
+                              <span className="inline-flex items-center gap-1 text-[11px] text-factory-paper bg-factory-dark px-2 py-1 rounded border border-factory-darkBorder">
+                                <CheckCircle className="w-3 h-3 text-factory-muted" />
                                 Available
                               </span>
                               {!isStore && (
@@ -426,21 +424,21 @@ export const StoreView: React.FC = () => {
                     <div className="mt-1.5 p-2 rounded bg-factory-dark border border-factory-darkBorder flex flex-col gap-1.5 text-[11px]">
                       <div className="flex items-center justify-between">
                         <span className="text-factory-muted">
-                          Batch Output: <b className="text-factory-paper">{b.finished_output_kg || '0.00'} KG</b> | Packed: <b className="text-emerald-400">{b.total_packed_kg || '0.00'} KG</b>
+                          Batch Output: <b className="text-factory-paper">{b.finished_output_kg || '0.00'} KG</b> | Packed: <b className="text-factory-paper">{b.total_packed_kg || '0.00'} KG</b>
                         </span>
                         {!isFullyPacked && remainingNum > 0 && (
                           <button
                             type="button"
                             onClick={() => setNewBag(prev => ({ ...prev, weight_kg: remainingNum.toFixed(2) }))}
-                            className="text-factory-amber underline font-medium cursor-pointer"
+                            className="text-factory-secondary underline font-medium cursor-pointer"
                           >
                             Fill Remaining ({remainingNum.toFixed(2)} KG)
                           </button>
                         )}
                       </div>
                       {isFullyPacked && (
-                        <div className="text-emerald-400 font-medium flex items-center gap-1.5 pt-1 border-t border-factory-darkBorder/60">
-                          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                        <div className="text-factory-muted font-medium flex items-center gap-1.5 pt-1 border-t border-factory-darkBorder/60">
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0 text-factory-muted" />
                           <span>Batch has been 100% packed and submitted. No more packs can be extracted from this batch.</span>
                         </div>
                       )}
@@ -529,16 +527,15 @@ export const StoreView: React.FC = () => {
                     <button
                       type="submit"
                       disabled={submitting || isSelectedBatchFullyPacked}
-                      className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow ${
-                        isSelectedBatchFullyPacked
+                      className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow ${isSelectedBatchFullyPacked
                           ? 'bg-factory-darkBorder/50 text-factory-muted/60 border border-factory-darkBorder cursor-not-allowed'
                           : 'bg-factory-rust hover:bg-factory-rustLight text-white cursor-pointer'
-                      }`}
+                        }`}
                       title={isSelectedBatchFullyPacked ? 'No more packs can be extracted from this batch' : 'Save Sack to Store'}
                     >
                       {isSelectedBatchFullyPacked ? (
                         <>
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                          <CheckCircle className="w-3.5 h-3.5 text-factory-muted" />
                           Batch Fully Packed (Cannot Extract)
                         </>
                       ) : (

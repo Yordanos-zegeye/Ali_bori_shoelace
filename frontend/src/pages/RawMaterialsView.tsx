@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Layers, Search, AlertTriangle, Plus, 
-  RefreshCw, ClipboardList, MapPin, CheckCircle, AlertCircle
+  RefreshCw, ClipboardList, MapPin, CheckCircle, AlertCircle, Info
 } from 'lucide-react';
 import { api } from '../api/client';
 import { RawMaterialVariant } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const RawMaterialsView: React.FC = () => {
+  const { user } = useAuth();
   const [variants, setVariants] = useState<RawMaterialVariant[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
   
   // Stock Request Modal
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -21,6 +24,7 @@ export const RawMaterialsView: React.FC = () => {
   const [department, setDepartment] = useState('Braiding Section');
   const [reason, setReason] = useState('Production batch yarn requirement');
   const [submitting, setSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
 
   // Add Material Stock Modal
   const [showAddStockModal, setShowAddStockModal] = useState(false);
@@ -28,8 +32,6 @@ export const RawMaterialsView: React.FC = () => {
   const [newStock, setNewStock] = useState({
     raw_material_variant: '',
     place: 'MAIN_YARN_STORE',
-    st_v: '0.00',
-    st_n: '0.00',
     quantity_kg: '100.00',
     remark: 'New shipment reception'
   });
@@ -54,9 +56,19 @@ export const RawMaterialsView: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (user?.full_name) {
+      setRequesterName(user.full_name);
+    }
+    if (user?.department) {
+      setDepartment(user.department);
+    }
+  }, [user]);
+
   const handleCreateStockRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVariant) return;
+    setRequestError(null);
     try {
       setSubmitting(true);
       await api.post('/inventory/stock-requests/', {
@@ -74,10 +86,11 @@ export const RawMaterialsView: React.FC = () => {
       });
       setShowRequestModal(false);
       setSelectedVariant(null);
-      alert('Yarn request submitted successfully to warehouse manager!');
+      setSuccessToast(`Yarn request for ${requestQty} KG submitted successfully!`);
+      setTimeout(() => setSuccessToast(null), 5000);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to submit stock request');
+      setRequestError(err.message || 'Failed to submit stock request');
     } finally {
       setSubmitting(false);
     }
@@ -103,8 +116,6 @@ export const RawMaterialsView: React.FC = () => {
         raw_material_variant: variantId,
         place_text: newStock.place,
         place: newStock.place,
-        st_v: newStock.st_v || '0.00',
-        st_n: newStock.st_n || '0.00',
         total_kg: qty.toFixed(2),
         available_kg: qty.toFixed(2),
         quantity_kg: qty.toFixed(2),
@@ -112,11 +123,11 @@ export const RawMaterialsView: React.FC = () => {
         notes: newStock.remark
       });
       setShowAddStockModal(false);
+      setSuccessToast(`Yarn shipment of ${qty.toFixed(2)} KG registered successfully!`);
+      setTimeout(() => setSuccessToast(null), 5000);
       setNewStock({
         raw_material_variant: '',
         place: 'MAIN_YARN_STORE',
-        st_v: '0.00',
-        st_n: '0.00',
         quantity_kg: '100.00',
         remark: 'New shipment reception'
       });
@@ -128,17 +139,18 @@ export const RawMaterialsView: React.FC = () => {
     }
   };
 
-  const filteredVariants = variants.filter((v) => {
-    const matchesSearch = 
-      v.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.material_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.color_name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredVariants = (Array.isArray(variants) ? variants : []).filter((v) => {
+    const code = (v.code || '').toLowerCase();
+    const matType = (v.material_type_name || (v as any).material_type?.name || '').toLowerCase();
+    const color = (v.color_name || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = code.includes(search) || matType.includes(search) || color.includes(search);
     const matchesLowStock = filterLowStock ? v.is_low_stock : true;
     return matchesSearch && matchesLowStock;
   });
 
-  const totalKg = variants.reduce((sum, v) => sum + (v.total_available_kg || 0), 0);
-  const lowStockCount = variants.filter((v) => v.is_low_stock).length;
+  const totalKg = (Array.isArray(variants) ? variants : []).reduce((sum, v) => sum + (parseFloat(String(v.total_available_kg || 0)) || 0), 0);
+  const lowStockCount = (Array.isArray(variants) ? variants : []).filter((v) => v.is_low_stock).length;
 
   return (
     <div className="space-y-6">
@@ -171,10 +183,22 @@ export const RawMaterialsView: React.FC = () => {
             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            + Add Yarn Shipment
+            Add Yarn Shipment
           </button>
         </div>
       </div>
+
+      {successToast && (
+        <div className="p-3.5 rounded-xl bg-factory-darkCard border border-factory-darkBorder text-factory-paper text-xs flex items-center justify-between shadow-lg animate-fadeIn">
+          <div className="flex items-center gap-2 font-medium">
+            <CheckCircle className="w-4 h-4 text-factory-secondary shrink-0" />
+            <span>{successToast}</span>
+          </div>
+          <button onClick={() => setSuccessToast(null)} className="text-factory-muted hover:text-factory-paper cursor-pointer">
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -185,14 +209,16 @@ export const RawMaterialsView: React.FC = () => {
           <div className="text-2xl font-bold text-factory-paper mt-1">
             {totalKg.toFixed(2)} <span className="text-xs font-normal text-factory-muted">KG</span>
           </div>
-          <div className="text-xs text-factory-muted mt-1">Available across all yarn colors</div>
+          <div className="text-xs text-factory-muted mt-1">
+            ≈ {(totalKg / 32).toFixed(1)} standard 32 KG batches available
+          </div>
         </div>
 
         <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
             Yarn Colors & Types
           </div>
-          <div className="text-2xl font-bold text-factory-amber mt-1">
+          <div className="text-2xl font-bold text-factory-cream mt-1">
             {variants.length} <span className="text-xs font-normal text-factory-muted">types</span>
           </div>
           <div className="text-xs text-factory-muted mt-1">In active production use</div>
@@ -202,7 +228,7 @@ export const RawMaterialsView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
             Low Yarn Warnings
           </div>
-          <div className={`text-2xl font-bold mt-1 ${lowStockCount > 0 ? 'text-factory-crimson' : 'text-emerald-400'}`}>
+          <div className={`text-2xl font-bold mt-1 ${lowStockCount > 0 ? 'text-red-500' : 'text-factory-paper'}`}>
             {lowStockCount} <span className="text-xs font-normal text-factory-muted">alerts</span>
           </div>
           <div className="text-xs text-factory-muted mt-1">Below safety stock level</div>
@@ -268,19 +294,19 @@ export const RawMaterialsView: React.FC = () => {
                 </tr>
               ) : (
                 filteredVariants.map((v) => {
-                  const available = v.total_available_kg || 0;
-                  const minStock = parseFloat(v.minimum_stock_kg || '0');
+                  const available = parseFloat(String(v.total_available_kg || 0)) || 0;
+                  const minStock = parseFloat(String(v.minimum_stock_kg || 0)) || 0;
                   return (
                     <tr key={v.id} className="hover:bg-factory-darkBorder/20 transition-colors">
-                      <td className="py-3.5 px-4 font-semibold text-factory-amber">
+                      <td className="py-3.5 px-4 font-semibold text-factory-paper">
                         {v.code}
                       </td>
                       <td className="py-3.5 px-4 font-medium text-factory-paper">
-                        {v.material_type_name}
+                        {v.material_type_name || (v as any).material_type?.name || 'Raw Material'}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-factory-dark border border-factory-darkBorder text-factory-paper text-xs">
-                          <span className="w-2 h-2 rounded-full bg-factory-amber" />
+                          <span className="w-2 h-2 rounded-full bg-factory-secondary" />
                           {v.color_name}
                         </span>
                       </td>
@@ -288,19 +314,24 @@ export const RawMaterialsView: React.FC = () => {
                         {minStock.toFixed(2)} KG
                       </td>
                       <td className="py-3.5 px-4 font-bold">
-                        <span className={`text-sm ${v.is_low_stock ? 'text-factory-crimson' : 'text-emerald-400'}`}>
-                          {available.toFixed(2)} KG
-                        </span>
+                        <div>
+                          <span className={`text-sm ${v.is_low_stock ? 'text-red-500' : 'text-factory-paper'}`}>
+                            {available.toFixed(2)} KG
+                          </span>
+                          <span className="block text-[10px] font-mono text-factory-muted font-normal mt-0.5">
+                            ≈ {(available / 32).toFixed(1)} Batches (32 KG)
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
                         {v.is_low_stock ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-factory-crimson/20 text-factory-crimson border border-factory-crimson/30">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-500 border border-red-500/30">
                             <AlertTriangle className="w-3 h-3" />
                             LOW STOCK
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            <CheckCircle className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-factory-dark text-factory-paper border border-factory-darkBorder">
+                            <CheckCircle className="w-3 h-3 text-factory-muted" />
                             GOOD
                           </span>
                         )}
@@ -311,9 +342,9 @@ export const RawMaterialsView: React.FC = () => {
                             setSelectedVariant(v);
                             setShowRequestModal(true);
                           }}
-                          className="px-3 py-1 bg-factory-rust/20 hover:bg-factory-rust/30 text-factory-amber rounded border border-factory-rust/40 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="px-3 py-1 bg-factory-secondary/15 hover:bg-factory-secondary/25 text-factory-paper rounded border border-factory-secondary/30 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <ClipboardList className="w-3.5 h-3.5" />
+                          <ClipboardList className="w-3.5 h-3.5 text-factory-secondary" />
                           Request Yarn
                         </button>
                       </td>
@@ -329,18 +360,18 @@ export const RawMaterialsView: React.FC = () => {
       {/* Storage Locations / Sub-stocks breakdown */}
       <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold font-heading text-factory-paper flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-factory-amber" />
+          <MapPin className="w-4 h-4 text-factory-secondary" />
           Yarn Warehouse Storage Locations & Bales
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {stocks.slice(0, 8).map((st) => (
             <div key={st.id} className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder text-xs space-y-1">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-factory-amber">{st.place_text || st.place || 'Main Shelf'}</span>
-                <span className="text-emerald-400 font-bold">{parseFloat(st.available_kg || st.quantity_kg || st.total_kg || '0').toFixed(1)} KG</span>
+                <span className="font-semibold text-factory-paper">{st.place_text || st.place || 'Main Shelf'}</span>
+                <span className="text-factory-paper font-bold">{parseFloat(String(st.available_kg || st.quantity_kg || st.total_kg || 0)).toFixed(1)} KG</span>
               </div>
               <div className="text-factory-muted text-[11px] truncate">
-                Starting Bales: <span className="text-factory-paper">{st.st_v}</span> | Code: <span className="text-factory-paper">{st.st_n}</span>
+                Storage: <span className="text-factory-paper">{st.place || 'Main Storage'}</span>
               </div>
               <div className="text-[10px] text-factory-muted truncate">
                 {st.remark || st.variant_name || 'Standard shelf allocation'}
@@ -375,12 +406,26 @@ export const RawMaterialsView: React.FC = () => {
 
             <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder text-xs space-y-1">
               <div className="text-factory-muted">Selected Yarn:</div>
-              <div className="font-semibold text-factory-amber">{selectedVariant.code} - {selectedVariant.color_name}</div>
-              <div className="text-factory-paper">{selectedVariant.material_type_name}</div>
-              <div className="text-emerald-400 font-semibold">
-                Available in Warehouse: {selectedVariant.total_available_kg.toFixed(2)} KG
+              <div className="font-semibold text-factory-amber">{selectedVariant.code || 'RM-YARN'} - {selectedVariant.color_name || 'Natural'}</div>
+              <div className="text-factory-paper">{selectedVariant.material_type_name || (selectedVariant as any).material_type?.name || 'Raw Material'}</div>
+              <div className="text-factory-paper font-semibold font-mono">
+                Available in Warehouse: {(parseFloat(String(selectedVariant?.total_available_kg || 0)) || 0).toFixed(2)} KG ({( (parseFloat(String(selectedVariant?.total_available_kg || 0)) || 0) / 32 ).toFixed(1)} Batches)
               </div>
             </div>
+
+            <div className="p-2.5 rounded-lg bg-factory-dark border border-factory-darkBorder text-[11px] text-factory-muted flex items-start gap-2">
+              <Info className="w-4 h-4 text-factory-secondary shrink-0 mt-0.5" />
+              <span>
+                Submitting this form submits an internal yarn requisition. When you start a production run in the <strong>Production View</strong>, the yarn consumed (32 KG per batch) is automatically deducted from this warehouse inventory.
+              </span>
+            </div>
+
+            {requestError && (
+              <div className="p-3 rounded-lg bg-factory-crimson/20 border border-factory-crimson/40 text-factory-crimson text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{requestError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleCreateStockRequest} className="space-y-4 text-xs">
               <div>
@@ -492,7 +537,7 @@ export const RawMaterialsView: React.FC = () => {
                   <option value="">-- Select Yarn --</option>
                   {variants.map((v) => (
                     <option key={v.id} value={v.id}>
-                      {v.code} - {v.color_name} ({v.material_type_name})
+                      {v.code} - {v.color_name} ({v.material_type_name || (v as any).material_type?.name || 'Yarn'})
                     </option>
                   ))}
                 </select>
@@ -506,30 +551,9 @@ export const RawMaterialsView: React.FC = () => {
                   min="0.1"
                   value={newStock.quantity_kg}
                   onChange={(e) => setNewStock({ ...newStock, quantity_kg: e.target.value })}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-semibold focus:outline-none focus:border-factory-amber"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-semibold focus:outline-none focus:border-factory-secondary"
                   required
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Starting Volume / Bales (ST V)</label>
-                  <input
-                    type="text"
-                    value={newStock.st_v}
-                    onChange={(e) => setNewStock({ ...newStock, st_v: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper"
-                  />
-                </div>
-                <div>
-                  <label className="block text-factory-muted mb-1 font-medium">Stock Reference Code (ST N)</label>
-                  <input
-                    type="text"
-                    value={newStock.st_n}
-                    onChange={(e) => setNewStock({ ...newStock, st_n: e.target.value })}
-                    className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper"
-                  />
-                </div>
               </div>
 
               <div>
@@ -538,7 +562,7 @@ export const RawMaterialsView: React.FC = () => {
                   type="text"
                   value={newStock.place}
                   onChange={(e) => setNewStock({ ...newStock, place: e.target.value })}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-secondary"
                   required
                 />
               </div>
@@ -549,7 +573,7 @@ export const RawMaterialsView: React.FC = () => {
                   type="text"
                   value={newStock.remark}
                   onChange={(e) => setNewStock({ ...newStock, remark: e.target.value })}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-amber"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-secondary"
                 />
               </div>
 

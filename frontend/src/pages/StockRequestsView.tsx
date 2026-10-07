@@ -133,7 +133,7 @@ export const StockRequestsView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Fulfillments Completed
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono text-factory-cream mt-1">
             {issuedCount}
           </div>
           <div className="text-xs text-factory-muted mt-1">Stock deducted and delivered</div>
@@ -196,12 +196,12 @@ export const StockRequestsView: React.FC = () => {
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider ${
                         req.status === 'ISSUED'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-factory-dark text-factory-cream border border-factory-darkBorder'
                           : req.status === 'APPROVED'
                           ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                           : req.status === 'REJECTED'
-                          ? 'bg-factory-crimson/20 text-factory-crimson border border-factory-crimson/30'
-                          : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
+                          ? 'bg-red-500/10 text-red-500 border border-red-500/30'
+                          : 'bg-factory-dark text-factory-secondary border border-factory-darkBorder'
                       }`}
                     >
                       {req.status}
@@ -251,9 +251,9 @@ export const StockRequestsView: React.FC = () => {
                         setSelectedRequest(req);
                         setActionType('ISSUE');
                       }}
-                      className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-medium flex items-center gap-1"
+                      className="px-3 py-1.5 bg-factory-secondary/15 hover:bg-factory-secondary/25 text-factory-paper border border-factory-secondary/30 rounded-lg text-xs font-medium flex items-center gap-1"
                     >
-                      <PackageCheck className="w-3.5 h-3.5" />
+                      <PackageCheck className="w-3.5 h-3.5 text-factory-secondary" />
                       Issue Stock to Workshop
                     </button>
                   )}
@@ -285,12 +285,12 @@ export const StockRequestsView: React.FC = () => {
                           {item.raw_material_name || item.spare_part_name || item.item_description || 'Factory Item'}
                         </td>
                         <td className="py-2 font-mono text-factory-amber font-bold">
-                          {parseFloat(item.requested_quantity).toFixed(2)} {item.unit}
+                          {parseFloat(item.requested_quantity || '0').toFixed(2)} {item.unit}
                         </td>
                         <td className="py-2 font-mono text-blue-400">
                           {parseFloat(item.approved_quantity || '0').toFixed(2)} {item.unit}
                         </td>
-                        <td className="py-2 font-mono text-emerald-400">
+                        <td className="py-2 font-mono text-factory-paper">
                           {parseFloat(item.issued_quantity || '0').toFixed(2)} {item.unit}
                         </td>
                       </tr>
@@ -382,10 +382,10 @@ export const StockRequestsView: React.FC = () => {
                 disabled={submitting}
                 className={`w-full sm:w-auto px-4 py-2 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow ${
                   actionType === 'APPROVE'
-                    ? 'bg-blue-600 hover:bg-blue-500'
+                    ? 'bg-factory-dark border border-factory-darkBorder text-factory-cream hover:bg-factory-darkBorder'
                     : actionType === 'ISSUE'
-                    ? 'bg-emerald-600 hover:bg-emerald-500'
-                    : 'bg-factory-crimson hover:bg-red-700'
+                    ? 'bg-factory-rust hover:bg-factory-rustLight'
+                    : 'bg-red-600 hover:bg-red-500'
                 }`}
               >
                 {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}

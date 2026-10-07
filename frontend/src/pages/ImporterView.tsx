@@ -42,7 +42,7 @@ export const ImporterView: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-factory-darkCard p-5 rounded-xl border border-factory-darkBorder">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="p-2 rounded-lg bg-factory-dark border border-factory-darkBorder text-factory-amber">
               <FileSpreadsheet className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
@@ -65,8 +65,8 @@ export const ImporterView: React.FC = () => {
       </div>
 
       {syncResult && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 shrink-0" />
+        <div className="p-4 rounded-xl bg-factory-darkCard border border-factory-darkBorder text-factory-paper text-xs flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 shrink-0 text-factory-amber" />
           <span className="font-medium">{syncResult}</span>
         </div>
       )}
@@ -75,8 +75,8 @@ export const ImporterView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
         <div className="bg-factory-darkCard border border-factory-darkBorder p-4 rounded-xl">
           <div className="text-factory-muted text-[11px] font-medium">Spreadsheet Status</div>
-          <div className="text-emerald-400 font-bold text-sm mt-1 flex items-center gap-1.5">
-            <Check className="w-4 h-4" /> Connected & Ready
+          <div className="text-factory-paper font-bold text-sm mt-1 flex items-center gap-1.5">
+            <Check className="w-4 h-4 text-factory-amber" /> Connected & Ready
           </div>
           <p className="text-[11px] text-factory-muted mt-1">All 12 tabs imported into the factory system</p>
         </div>
@@ -101,7 +101,7 @@ export const ImporterView: React.FC = () => {
             </h3>
             <p className="text-[11px] text-factory-muted mt-0.5">Every sheet from your original file is organized into clear operational areas.</p>
           </div>
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-factory-dark text-factory-muted border border-factory-darkBorder font-mono">
             All Synchronized
           </span>
         </div>
@@ -123,8 +123,8 @@ export const ImporterView: React.FC = () => {
 
               <div className="flex items-center gap-4 self-end sm:self-auto">
                 <span className="text-factory-paper font-semibold">{sheet.count}</span>
-                <span className="inline-flex items-center gap-1 text-emerald-400 text-[11px] bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1 text-factory-muted text-[11px] bg-factory-dark px-2.5 py-0.5 rounded-full border border-factory-darkBorder font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-factory-amber" />
                   {sheet.status}
                 </span>
               </div>

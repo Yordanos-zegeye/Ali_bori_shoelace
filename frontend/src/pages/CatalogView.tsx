@@ -100,7 +100,7 @@ export const CatalogView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Shop Count Balance
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono text-factory-paper mt-1">
             {totalShopStock.toFixed(1)} <span className="text-xs font-normal text-factory-muted">Units/Bags</span>
           </div>
           <div className="text-xs text-factory-muted mt-1">Calculated shop floor inventory</div>
@@ -172,7 +172,7 @@ export const CatalogView: React.FC = () => {
                       <td className="py-3.5 px-4 font-mono text-factory-paper">
                         {stock?.daily_product ? parseFloat(stock.daily_product).toFixed(1) : '—'}
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-emerald-400">
+                      <td className="py-3.5 px-4 font-mono text-factory-paper">
                         {stock?.in_qty ? `+${parseFloat(stock.in_qty).toFixed(1)}` : '0.0'}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-factory-crimson">

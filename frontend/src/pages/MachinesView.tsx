@@ -150,7 +150,7 @@ export const MachinesView: React.FC = () => {
           <div className="text-[10px] font-bold text-factory-muted uppercase tracking-wider">
             Good Condition
           </div>
-          <div className="text-2xl font-bold text-emerald-400 mt-1">
+          <div className="text-2xl font-bold text-factory-paper mt-1">
             {normalCount}
           </div>
           <div className="text-[11px] text-factory-muted mt-0.5">Working properly</div>
@@ -160,7 +160,7 @@ export const MachinesView: React.FC = () => {
           <div className="text-[10px] font-bold text-factory-muted uppercase tracking-wider">
             Needs Service Soon
           </div>
-          <div className="text-2xl font-bold text-factory-amber mt-1">
+          <div className="text-2xl font-bold text-factory-paper mt-1">
             {serviceCount}
           </div>
           <div className="text-[11px] text-factory-muted mt-0.5">Routine oiling & check</div>
@@ -299,11 +299,9 @@ export const MachinesView: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider ${
-                            m.health === 'NORMAL'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : m.health === 'CRITICAL'
+                            m.health === 'CRITICAL'
                               ? 'bg-factory-crimson/20 text-factory-crimson border border-factory-crimson/30'
-                              : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
+                              : 'bg-factory-dark text-factory-muted border border-factory-darkBorder'
                           }`}
                         >
                           {m.health === 'NORMAL' ? 'GOOD' : m.health === 'CRITICAL' ? 'URGENT REPAIR' : 'NEEDS SERVICE'}
@@ -314,7 +312,7 @@ export const MachinesView: React.FC = () => {
                           <div className="w-16 h-2 bg-factory-dark rounded-full overflow-hidden border border-factory-darkBorder">
                             <div
                               className={`h-full ${
-                                score >= 80 ? 'bg-emerald-500' : score >= 60 ? 'bg-factory-amber' : 'bg-factory-crimson'
+                                score < 60 ? 'bg-factory-crimson' : 'bg-factory-muted'
                               }`}
                               style={{ width: `${Math.min(100, score)}%` }}
                             />
@@ -329,8 +327,8 @@ export const MachinesView: React.FC = () => {
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                             m.status === 'ACTIVE'
-                              ? 'text-emerald-400 bg-emerald-500/10'
-                              : 'text-factory-amber bg-factory-amber/10'
+                              ? 'text-factory-paper bg-factory-dark border border-factory-darkBorder'
+                              : 'text-factory-crimson bg-factory-crimson/10 border border-factory-crimson/20'
                           }`}
                         >
                           {m.status === 'ACTIVE' ? 'RUNNING' : m.status === 'MAINTENANCE' ? 'UNDER SERVICE' : 'STOPPED'}

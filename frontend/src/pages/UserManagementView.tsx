@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Users, UserPlus, ShieldCheck, Factory, Store, CheckCircle, 
-  XCircle, Search, RefreshCw, X, AlertCircle, Phone, MapPin, Building
+  XCircle, Search, RefreshCw, X, AlertCircle, Phone, MapPin, Building,
+  Trash2, KeyRound
 } from 'lucide-react';
 import { api } from '../api/client';
 import { User, UserRole, Customer } from '../types';
@@ -12,6 +13,7 @@ export const UserManagementView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -47,9 +49,11 @@ export const UserManagementView: React.FC = () => {
   // Create User Mutation
   const createMutation = useMutation({
     mutationFn: (newUserData: any) => api.post('/auth/users/', newUserData),
-    onSuccess: () => {
+    onSuccess: (createdUser: any) => {
       queryClient.invalidateQueries({ queryKey: ['manage-users'] });
       setIsCreateModalOpen(false);
+      setSuccessMessage(`User "${createdUser?.full_name || createdUser?.email || formData.email}" created successfully! They can log in immediately with password.`);
+      setTimeout(() => setSuccessMessage(null), 6000);
       setFormData({
         email: '',
         first_name: '',
@@ -65,6 +69,19 @@ export const UserManagementView: React.FC = () => {
     },
     onError: (err: any) => {
       setFormError(err.data?.email?.[0] || err.data?.detail || err.message || 'Failed to create user');
+    }
+  });
+
+  // Delete User Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (userId: string) => api.delete(`/auth/users/${userId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['manage-users'] });
+      setSuccessMessage('User account removed successfully.');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    },
+    onError: (err: any) => {
+      alert(err.data?.detail || err.message || 'Failed to delete user');
     }
   });
 
@@ -114,23 +131,23 @@ export const UserManagementView: React.FC = () => {
     switch (role) {
       case 'super_admin':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-            <ShieldCheck className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-factory-dark text-factory-cream border border-factory-darkBorder">
+            <ShieldCheck className="w-3 h-3 text-factory-cream" />
             Super Admin
           </span>
         );
       case 'factory_monitor':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-            <Factory className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-factory-dark text-factory-secondary border border-factory-darkBorder">
+            <Factory className="w-3 h-3 text-factory-secondary" />
             Factory Monitor
           </span>
         );
       case 'store':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-            <Store className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-factory-dark text-factory-paper border border-factory-darkBorder">
+            <Store className="w-3 h-3 text-factory-paper" />
             Store / Shop
           </span>
         );
@@ -146,7 +163,7 @@ export const UserManagementView: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-bold font-heading text-factory-cream">
               User Management & Access Control
             </h1>
-            <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-purple-500/20 text-purple-300 border border-purple-500/40">
+            <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-factory-dark text-factory-cream border border-factory-darkBorder">
               Super Admin Only
             </span>
           </div>
@@ -154,6 +171,18 @@ export const UserManagementView: React.FC = () => {
             Create accounts and configure role permissions for Ali Bori Factory staff and retail stores.
           </p>
         </div>
+
+        {successMessage && (
+          <div className="w-full p-3 rounded-lg bg-factory-darkCard border border-factory-darkBorder text-factory-paper text-xs flex items-center justify-between animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-factory-secondary shrink-0" />
+              <span className="font-medium">{successMessage}</span>
+            </div>
+            <button onClick={() => setSuccessMessage(null)} className="text-factory-muted hover:text-factory-paper">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <button
@@ -181,40 +210,40 @@ export const UserManagementView: React.FC = () => {
             <div className="text-xs text-factory-muted font-medium">Total Registered Users</div>
             <div className="text-2xl font-bold text-factory-cream font-mono mt-1">{users.length}</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">
+          <div className="w-10 h-10 rounded-xl bg-factory-dark flex items-center justify-center text-factory-secondary border border-factory-darkBorder">
             <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-factory-darkCard border border-purple-500/30 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-factory-darkCard border border-factory-darkBorder flex items-center justify-between">
           <div>
-            <div className="text-xs text-purple-300 font-medium">Super Admins</div>
-            <div className="text-2xl font-bold text-purple-200 font-mono mt-1">{superAdminCount}</div>
-            <div className="text-[10px] text-purple-300/70 mt-0.5">Full System Access</div>
+            <div className="text-xs text-factory-cream font-medium">Super Admins</div>
+            <div className="text-2xl font-bold text-factory-cream font-mono mt-1">{superAdminCount}</div>
+            <div className="text-[10px] text-factory-muted mt-0.5">Full System Access</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-300 border border-purple-500/30">
+          <div className="w-10 h-10 rounded-xl bg-factory-dark flex items-center justify-center text-factory-cream border border-factory-darkBorder">
             <ShieldCheck className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-factory-darkCard border border-amber-500/30 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-factory-darkCard border border-factory-darkBorder flex items-center justify-between">
           <div>
-            <div className="text-xs text-amber-300 font-medium">Factory Monitors</div>
-            <div className="text-2xl font-bold text-amber-200 font-mono mt-1">{factoryMonitorCount}</div>
-            <div className="text-[10px] text-amber-300/70 mt-0.5">Production & Dispatches</div>
+            <div className="text-xs text-factory-secondary font-medium">Factory Monitors</div>
+            <div className="text-2xl font-bold text-factory-cream font-mono mt-1">{factoryMonitorCount}</div>
+            <div className="text-[10px] text-factory-muted mt-0.5">Production & Dispatches</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-300 border border-amber-500/30">
+          <div className="w-10 h-10 rounded-xl bg-factory-dark flex items-center justify-center text-factory-secondary border border-factory-darkBorder">
             <Factory className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-factory-darkCard border border-emerald-500/30 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-factory-darkCard border border-factory-darkBorder flex items-center justify-between">
           <div>
-            <div className="text-xs text-emerald-300 font-medium">Store & Shop Accounts</div>
-            <div className="text-2xl font-bold text-emerald-200 font-mono mt-1">{storeCount}</div>
-            <div className="text-[10px] text-emerald-300/70 mt-0.5">Ordering & Stock Requisitions</div>
+            <div className="text-xs text-factory-paper font-medium">Store & Shop Accounts</div>
+            <div className="text-2xl font-bold text-factory-cream font-mono mt-1">{storeCount}</div>
+            <div className="text-[10px] text-factory-muted mt-0.5">Ordering & Stock Requisitions</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 border border-emerald-500/30">
+          <div className="w-10 h-10 rounded-xl bg-factory-dark flex items-center justify-center text-factory-paper border border-factory-darkBorder">
             <Store className="w-5 h-5" />
           </div>
         </div>
@@ -295,13 +324,13 @@ export const UserManagementView: React.FC = () => {
                     {/* Store or Department */}
                     <td className="p-3.5 text-factory-muted">
                       {u.customer_name ? (
-                        <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                          <Store className="w-3.5 h-3.5 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-factory-paper font-medium">
+                          <Store className="w-3.5 h-3.5 shrink-0 text-factory-secondary" />
                           <span>{u.customer_name} ({u.customer_code || 'Client'})</span>
                         </div>
                       ) : u.store_name ? (
                         <div className="flex items-center gap-1.5 text-factory-cream">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <MapPin className="w-3.5 h-3.5 text-factory-secondary shrink-0" />
                           <span>{u.store_name}</span>
                         </div>
                       ) : u.department ? (
@@ -329,12 +358,12 @@ export const UserManagementView: React.FC = () => {
                     {/* Status */}
                     <td className="p-3.5">
                       {u.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                          <CheckCircle className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1 text-[11px] text-factory-paper font-medium">
+                          <CheckCircle className="w-3 h-3 text-factory-muted" />
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-red-400 font-medium">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-red-500 font-medium">
                           <XCircle className="w-3 h-3" />
                           Disabled
                         </span>
@@ -343,17 +372,31 @@ export const UserManagementView: React.FC = () => {
 
                     {/* Actions */}
                     <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => toggleActiveMutation.mutate(u.id)}
-                        disabled={toggleActiveMutation.isPending}
-                        className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer border ${
-                          u.is_active
-                            ? 'bg-red-500/10 hover:bg-red-500/20 text-red-300 border-red-500/30'
-                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        }`}
-                      >
-                        {u.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => toggleActiveMutation.mutate(u.id)}
+                          disabled={toggleActiveMutation.isPending}
+                          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer border ${
+                            u.is_active
+                              ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
+                              : 'bg-factory-dark hover:bg-factory-darkBorder text-factory-paper border-factory-darkBorder'
+                          }`}
+                        >
+                          {u.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to permanently delete user "${u.full_name || u.email}"?`)) {
+                              deleteMutation.mutate(u.id);
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          className="p-1 rounded text-factory-muted hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border border-transparent hover:border-red-500/30"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

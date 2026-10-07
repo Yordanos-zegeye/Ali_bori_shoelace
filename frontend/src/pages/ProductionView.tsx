@@ -307,11 +307,24 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
       setActionError('Please select a shoe lace product to manufacture.');
       return;
     }
+
+    let yarnId = newBatch.raw_material_yarn;
+    if (!yarnId && selectedProduct) {
+      const prodColor = (selectedProduct.color_details?.name || '').toLowerCase();
+      const matched = yarnVariants.find(
+        (y) => (y.color_name || '').toLowerCase() === prodColor || (y.color_name || '').toLowerCase().includes(prodColor)
+      );
+      if (matched) yarnId = String(matched.id);
+    }
+    if (!yarnId && yarnVariants.length > 0) {
+      yarnId = String(yarnVariants[0].id);
+    }
+
     try {
       setSubmitting(true);
       await api.post('/production/batches/', {
         product_variant: Number(newBatch.product_variant),
-        raw_material_yarn: newBatch.raw_material_yarn ? Number(newBatch.raw_material_yarn) : null,
+        raw_material_yarn: yarnId ? Number(yarnId) : null,
         yarn_batch_count: Number(newBatch.yarn_batch_count) || 1,
         raw_yarn_input_kg: newBatch.raw_yarn_input_kg,
         acetone_used: newBatch.acetone_used,
@@ -322,7 +335,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
         status: 'IN_PROGRESS'
       });
       setShowCreateModal(false);
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       setActionError(err.message || 'Failed to start production run and request raw materials.');
     } finally {
@@ -740,11 +753,11 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
             {/* Step 3 Card */}
             <div className="bg-factory-dark/80 border border-factory-darkBorder p-3.5 rounded-xl relative overflow-hidden">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 font-mono flex items-center gap-1.5">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-factory-paper font-mono flex items-center gap-1.5">
                   <Warehouse className="w-3.5 h-3.5" />
                   STEP 3: WEIGH & MOVE TO STORE
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded bg-factory-dark border border-factory-darkBorder text-factory-muted font-bold font-mono">
                   Finished Goods
                 </span>
               </div>
@@ -754,11 +767,11 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
               <div className="text-[11px] space-y-1 bg-factory-darkCard p-2 rounded-lg border border-factory-darkBorder/60 text-factory-paper">
                 <div className="flex justify-between">
                   <span className="text-factory-muted">Measured:</span>
-                  <span className="font-semibold text-emerald-400">Finished Shoelaces (KG)</span>
+                  <span className="font-semibold text-factory-paper">Finished Shoelaces (KG)</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-factory-muted">Storage:</span>
-                  <span className="text-emerald-400 font-semibold">Weighed Sacks (25 to 40 KG)</span>
+                  <span className="text-factory-paper font-semibold">Weighed Sacks (25 to 40 KG)</span>
                 </div>
               </div>
             </div>
@@ -941,13 +954,13 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
 
                       {/* Finished Output & Store Sacks */}
                       <td className="py-3.5 px-4 font-mono">
-                        <div className="text-emerald-400 font-bold">
+                        <div className="text-factory-paper font-bold">
                           {finishedOut > 0 ? `${finishedOut.toFixed(2)} KG` : '—'}
                         </div>
                         {finishedOut > 0 && (
                           <div className="mt-0.5 font-sans">
                             {batch.bag_count > 0 ? (
-                              <div className="text-[10px] text-emerald-300 font-semibold flex items-center gap-1">
+                              <div className="text-[10px] text-factory-muted font-semibold flex items-center gap-1">
                                 <Package className="w-2.5 h-2.5" />
                                 <span>{batch.bag_count} {batch.bag_count === 1 ? 'sack' : 'sacks'} in store</span>
                                 <span className="font-mono font-bold">({batch.total_packed_kg || finishedOut.toFixed(2)} KG)</span>
@@ -958,11 +971,11 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                               </div>
                             )}
                             {parseFloat(batch.remaining_unpacked_kg || '0') > 0 ? (
-                              <div className="text-[9px] text-factory-amber font-medium">
+                              <div className="text-[9px] text-factory-paper font-medium">
                                 {batch.remaining_unpacked_kg} KG unpacked
                               </div>
                             ) : batch.status === 'COMPLETED' && (
-                              <div className="text-[9px] text-emerald-400 font-semibold flex items-center gap-0.5">
+                              <div className="text-[9px] text-factory-muted font-semibold flex items-center gap-0.5">
                                 <CheckCircle2 className="w-2.5 h-2.5" />
                                 <span>100% Packed</span>
                               </div>
@@ -991,11 +1004,9 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       {/* Overall Efficiency / Yield % */}
                       <td className="py-3.5 px-4 font-mono font-bold">
                         <span
-                          className={`px-2 py-0.5 rounded text-xs inline-block ${yieldNum >= 92
-                            ? 'bg-emerald-500/10 text-emerald-400'
-                            : yieldNum > 0
-                              ? 'bg-factory-amber/10 text-factory-amber'
-                              : 'text-factory-muted'
+                          className={`px-2 py-0.5 rounded text-xs inline-block font-mono ${yieldNum > 0 && yieldNum < 80
+                            ? 'bg-factory-crimson/20 text-factory-crimson border border-factory-crimson/30'
+                            : 'bg-factory-dark text-factory-paper border border-factory-darkBorder'
                             }`}
                         >
                           {yieldNum > 0 ? `${yieldNum.toFixed(1)}%` : '—'}
@@ -1005,14 +1016,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider inline-block ${batch.status === 'COMPLETED'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : batch.status === 'TRANSFERRED'
-                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                              : batch.status === 'PHASE_1_COMPLETE'
-                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                                : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
-                            }`}
+                          className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider inline-block bg-factory-dark text-factory-muted border border-factory-darkBorder"
                         >
                           {batch.status === 'IN_PROGRESS'
                             ? '1. BRAIDING IN B1'
@@ -1060,7 +1064,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                                 setPackSackDirectly(true);
                                 setActionError(null);
                               }}
-                              className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded border border-emerald-500/30 text-xs font-semibold cursor-pointer flex items-center gap-1 shadow-sm"
+                              className="px-2.5 py-1 bg-factory-rust hover:bg-factory-rustLight text-white rounded text-xs font-semibold cursor-pointer flex items-center gap-1 shadow-sm transition-colors"
                               title="Step 3: Weigh Finished Shoelaces & Move to Store"
                             >
                               <Warehouse className="w-3 h-3" />
@@ -1073,10 +1077,10 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                             isFullyPacked ? (
                               <button
                                 disabled
-                                className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400/90 border border-emerald-500/25 rounded text-xs font-semibold flex items-center gap-1 opacity-80 cursor-not-allowed shadow-none"
+                                className="px-2.5 py-1 bg-factory-dark text-factory-muted border border-factory-darkBorder rounded text-xs font-semibold flex items-center gap-1 opacity-80 cursor-not-allowed shadow-none"
                                 title={`Batch ${batch.batch_number} is completely packed (${totalPacked > 0 ? totalPacked.toFixed(2) : finishedOut.toFixed(2)} KG in ${batch.bag_count || 0} sacks). No more packs can be extracted from this batch.`}
                               >
-                                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <CheckCircle2 className="w-3 h-3 text-factory-muted shrink-0" />
                                 <span>Fully Packed ({batch.bag_count || 0})</span>
                               </button>
                             ) : (
@@ -1090,7 +1094,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                                 title={`Pack Remaining Finished Sacks (${remainingUnpacked.toFixed(2)} KG unpacked remaining)`}
                               >
                                 <Package className="w-3 h-3 shrink-0" />
-                                <span>+ Pack Sack ({remainingUnpacked.toFixed(1)}k left)</span>
+                                <span>Pack Sack ({remainingUnpacked.toFixed(1)}k left)</span>
                               </button>
                             )
                           )}
@@ -1145,8 +1149,8 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                     <Factory className="w-4 h-4 text-factory-amber shrink-0" />
                     Step 1: Start Production Run
                   </h2>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-medium border border-emerald-500/30">
-                    <span className={`w-1.5 h-1.5 rounded-full ${stockLoading ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-factory-dark text-factory-muted text-[10px] font-medium border border-factory-darkBorder font-mono">
+                    <span className={`w-1.5 h-1.5 rounded-full ${stockLoading ? 'bg-factory-amber animate-ping' : 'bg-factory-paper'}`} />
                     <span>{stockLoading ? 'Syncing...' : 'Warehouse Stock Live'}</span>
                   </span>
                 </div>
@@ -1197,7 +1201,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         Shoe Lace Product to Produce *
                       </label>
                       {selectedProduct && (
-                        <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                        <span className="text-[10px] text-factory-paper font-mono font-semibold">
                           Store: {parseFloat(String(selectedProduct.stock?.calculated_stock || selectedProduct.stock?.total || '0')).toFixed(1)} KG
                         </span>
                       )}
@@ -1219,7 +1223,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                     {selectedProduct && (
                       <div className="flex flex-wrap items-center justify-between px-2 py-1 rounded bg-factory-dark border border-factory-darkBorder/70 text-[10px] gap-1 text-factory-muted">
                         <span>Color: <strong className="text-factory-paper">{selectedProduct.color_details?.name || 'Standard'}</strong></span>
-                        <span className="text-emerald-400 font-medium">✓ Auto-matched Yarn & Film</span>
+                        <span className="text-factory-muted font-medium">✓ Auto-matched Yarn & Film</span>
                       </div>
                     )}
                   </div>
@@ -1233,10 +1237,10 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       </label>
                       {selectedYarnStock && (
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${yarnAvailableKg > 0
-                            ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40'
-                            : 'bg-red-950/40 text-red-300 border-red-800/40'
+                          ? 'bg-factory-dark text-factory-paper border-factory-darkBorder'
+                          : 'bg-red-950/40 text-red-300 border-red-800/40'
                           }`}>
-                          {yarnAvailableKg.toFixed(1)} KG in Store
+                          {yarnAvailableKg.toFixed(1)} KG ({(yarnAvailableKg / 32).toFixed(1)} Batches in Store)
                         </span>
                       )}
                     </div>
@@ -1251,9 +1255,10 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         <option value="">-- Choose Yarn --</option>
                         {yarnVariants.map((y) => {
                           const avail = parseFloat(String(y.total_available_kg || 0));
+                          const batchesAvail = (avail / 32).toFixed(1);
                           return (
                             <option key={y.id} value={y.id}>
-                              {y.material_type_name} - {y.color_name} ({avail.toFixed(1)} KG in store)
+                              {y.material_type_name} - {y.color_name} ({avail.toFixed(1)} KG / {batchesAvail} Batches in store)
                             </option>
                           );
                         })}
@@ -1337,8 +1342,8 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                               });
                             }}
                             className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-colors cursor-pointer ${newBatch.yarn_batch_count === cnt
-                                ? 'bg-factory-amber text-black'
-                                : 'bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber'
+                              ? 'bg-factory-amber text-black'
+                              : 'bg-factory-darkCard border border-factory-darkBorder text-factory-paper hover:border-factory-amber'
                               }`}
                           >
                             {cnt}b ({cnt * 32}k)
@@ -1379,15 +1384,15 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   {/* Live Warehouse Stock Availability Preview */}
                   {selectedYarnStock ? (
                     <div className={`p-2.5 sm:p-3 rounded-lg border text-xs space-y-1.5 transition-all ${isYarnStockSufficient
-                        ? 'bg-emerald-950/20 border-emerald-500/30'
-                        : 'bg-amber-950/25 border-amber-500/40'
+                      ? 'bg-factory-dark/60 border-factory-darkBorder'
+                      : 'bg-red-950/25 border-red-500/40'
                       }`}>
                       <div className="flex items-center justify-between gap-1">
                         <span className="font-semibold text-factory-paper flex items-center gap-1.5 truncate text-[11px]">
-                          <Warehouse className="w-3.5 h-3.5 text-factory-amber shrink-0" />
+                          <Warehouse className="w-3.5 h-3.5 text-factory-paper shrink-0" />
                           Stock: {selectedYarnStock.color_name} Yarn
                         </span>
-                        <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[10px] shrink-0 ${yarnAvailableKg > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                        <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[10px] shrink-0 ${yarnAvailableKg > 0 ? 'bg-factory-dark text-factory-paper border border-factory-darkBorder' : 'bg-red-500/20 text-red-300'
                           }`}>
                           {yarnAvailableKg.toFixed(1)} KG Avail
                         </span>
@@ -1396,7 +1401,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
                         <div className="bg-factory-dark/70 p-1 rounded border border-factory-darkBorder/60 min-w-0">
                           <div className="text-[9px] text-factory-muted truncate">In Store</div>
-                          <div className="font-mono font-bold text-emerald-400 mt-0.5 truncate">{yarnAvailableKg.toFixed(1)} KG</div>
+                          <div className="font-mono font-bold text-factory-paper mt-0.5 truncate">{yarnAvailableKg.toFixed(1)} KG</div>
                         </div>
                         <div className="bg-factory-dark/70 p-1 rounded border border-factory-darkBorder/60 min-w-0">
                           <div className="text-[9px] text-factory-muted truncate">Required</div>
@@ -1404,17 +1409,17 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         </div>
                         <div className="bg-factory-dark/70 p-1 rounded border border-factory-darkBorder/60 min-w-0">
                           <div className="text-[9px] text-factory-muted truncate">Balance After</div>
-                          <div className={`font-mono font-bold mt-0.5 truncate ${yarnAvailableKg >= yarnRequestedKg ? 'text-blue-400' : 'text-factory-crimson'}`}>
+                          <div className={`font-mono font-bold mt-0.5 truncate ${yarnAvailableKg >= yarnRequestedKg ? 'text-factory-paper' : 'text-factory-crimson'}`}>
                             {(yarnAvailableKg - yarnRequestedKg).toFixed(1)} KG
                           </div>
                         </div>
                       </div>
 
                       {!isYarnStockSufficient && (
-                        <div className="flex items-start gap-1 text-[10px] text-amber-200 bg-amber-950/60 p-1.5 rounded border border-amber-600/40">
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-1 text-[10px] text-red-200 bg-red-950/60 p-1.5 rounded border border-red-600/40">
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
                           <div>
-                            <strong className="font-semibold block text-amber-300">Shortage:</strong>
+                            <strong className="font-semibold block text-red-300">Shortage:</strong>
                             <span>
                               Deficit of {yarnStockShortage.toFixed(1)} KG. Please reduce batch count or add stock.
                             </span>
@@ -1444,7 +1449,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         <div className="flex justify-between items-center mb-0.5">
                           <label className="text-factory-muted text-[10px]">Acetone (L)</label>
                           {acetoneStock && (
-                            <span className="text-[9px] font-mono text-emerald-400">
+                            <span className="text-[9px] font-mono text-factory-paper">
                               Store: {parseFloat(String(acetoneStock.total_available_kg || 0)).toFixed(1)} L
                             </span>
                           )}
@@ -1463,7 +1468,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         <div className="flex justify-between items-center mb-0.5">
                           <label className="text-factory-muted text-[10px]">Film Roll</label>
                           {selectedFilmStock && (
-                            <span className="text-[9px] font-mono text-emerald-400">
+                            <span className="text-[9px] font-mono text-factory-paper">
                               Store: {parseFloat(String(selectedFilmStock.total_available_kg || 0)).toFixed(0)} r
                             </span>
                           )}
@@ -1521,7 +1526,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                     </div>
 
                     <div className="p-1.5 rounded bg-factory-dark border border-factory-darkBorder/70 text-[10px] text-factory-muted flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-factory-paper shrink-0" />
                       <span>Generates Stock Request & issues raw materials to Building 1.</span>
                     </div>
                   </div>
@@ -1708,7 +1713,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
             <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
               <div>
                 <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
-                  <Warehouse className="w-4 h-4 text-emerald-400" />
+                  <Warehouse className="w-4 h-4 text-factory-paper" />
                   Step 3: Weigh Finished Shoelaces & Move to Store
                 </h2>
                 <p className="text-[10px] sm:text-[11px] text-factory-muted">
@@ -1744,7 +1749,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                 </div>
                 <div className="col-span-2">
                   <span className="text-factory-muted block text-[10px]">Tipping Input Cords (from B1):</span>
-                  <span className="font-mono font-bold text-blue-400">
+                  <span className="font-mono font-bold text-factory-paper">
                     {storeBatch.tipping_input_kg || storeBatch.braided_output_kg} KG
                   </span>
                 </div>
@@ -1761,7 +1766,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   min="0.1"
                   value={storeFinishedWeight}
                   onChange={(e) => setStoreFinishedWeight(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-1.5 text-emerald-400 font-mono font-bold text-sm focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-1.5 text-factory-paper font-mono font-bold text-sm focus:outline-none focus:border-factory-amber"
                   required
                   autoFocus
                 />
@@ -1789,7 +1794,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   </div>
                   <div>
                     <span className="text-factory-muted block text-[9px]">Factory Yield:</span>
-                    <span className="font-mono text-emerald-400 font-bold text-xs">
+                    <span className="font-mono text-factory-paper font-bold text-xs">
                       {storeCalculations.yieldPct.toFixed(1)}%
                     </span>
                   </div>
@@ -1801,7 +1806,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-factory-paper font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
-                      <Package className="w-3.5 h-3.5 text-emerald-400" />
+                      <Package className="w-3.5 h-3.5 text-factory-paper" />
                       Pack Finished Sacks into Store
                     </span>
                     <p className="text-[10px] text-factory-muted">
@@ -1850,7 +1855,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         onClick={() => {
                           setStoreSackWeights((prev) => [...prev, '32.00']);
                         }}
-                        className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                        className="px-1.5 py-0.5 rounded text-[10px] bg-factory-dark border border-factory-darkBorder text-factory-paper hover:bg-factory-darkCard font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                       >
                         <Plus className="w-2.5 h-2.5" /> Add Sack
                       </button>
@@ -1875,7 +1880,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                                 setStoreSackWeights(updated);
                               }}
                               placeholder="Weight"
-                              className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-0.5 text-factory-paper font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
+                              className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-0.5 text-factory-paper font-mono font-bold text-xs focus:outline-none focus:border-factory-amber"
                               required
                             />
                             <span className="text-[10px] text-factory-muted font-mono shrink-0">KG</span>
@@ -1903,7 +1908,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                           Sacks: <strong className="text-factory-paper font-mono">{storeSackWeights.length}</strong>
                         </span>
                         <span className="text-factory-muted">
-                          Packed: <strong className="text-emerald-400 font-mono">
+                          Packed: <strong className="text-factory-paper font-mono">
                             {storeSackWeights.reduce((sum, w) => sum + (parseFloat(w) || 0), 0).toFixed(2)} KG
                           </strong>
                         </span>
@@ -1914,8 +1919,8 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                             Remaining: {(parseFloat(storeFinishedWeight) - storeSackWeights.reduce((sum, w) => sum + (parseFloat(w) || 0), 0)).toFixed(2)} KG
                           </span>
                         ) : (
-                          <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> All accounted for
+                          <span className="text-factory-muted font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-factory-muted" /> All accounted for
                           </span>
                         )}
                       </div>
@@ -1927,7 +1932,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         type="text"
                         value={storeLocation}
                         onChange={(e) => setStoreLocation(e.target.value)}
-                        className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper focus:outline-none focus:border-emerald-400 text-xs"
+                        className="w-full bg-factory-dark border border-factory-darkBorder rounded px-2 py-1 text-factory-paper focus:outline-none focus:border-factory-amber text-xs"
                         required={packSackDirectly}
                       />
                     </div>
@@ -1946,7 +1951,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full sm:w-auto px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow text-xs"
+                  className="w-full sm:w-auto px-4 py-1.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer shadow text-xs transition-colors"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Save Weight & Move to Store
@@ -1969,7 +1974,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
           >
             <div className="px-4 py-2.5 sm:px-5 sm:py-3 border-b border-factory-darkBorder flex justify-between items-center shrink-0 bg-factory-darkCard/95">
               <h2 className="text-sm sm:text-base font-bold font-heading text-factory-paper flex items-center gap-2">
-                <Package className="w-4 h-4 text-emerald-400" />
+                <Package className="w-4 h-4 text-factory-paper" />
                 Pack Additional Shoe Lace Sack
               </h2>
               <button
@@ -2000,11 +2005,11 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       </div>
                       <div>
                         <span className="text-factory-muted block">In Store:</span>
-                        <span className="font-mono text-emerald-400 font-semibold">{selectedBatch.total_packed_kg || '0.00'} KG ({selectedBatch.bag_count || 0} sacks)</span>
+                        <span className="font-mono text-factory-paper font-semibold">{selectedBatch.total_packed_kg || '0.00'} KG ({selectedBatch.bag_count || 0} sacks)</span>
                       </div>
                       <div>
                         <span className="text-factory-muted block">Remaining:</span>
-                        <span className={`font-mono font-semibold ${isBatchFullyPacked ? 'text-emerald-400' : 'text-factory-amber'}`}>
+                        <span className={`font-mono font-semibold ${isBatchFullyPacked ? 'text-factory-muted' : 'text-factory-paper'}`}>
                           {selectedBatch.remaining_unpacked_kg || '0.00'} KG
                         </span>
                       </div>
@@ -2012,11 +2017,11 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   </div>
 
                   {isBatchFullyPacked && (
-                    <div className="p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                    <div className="p-3 rounded-lg bg-factory-dark border border-factory-darkBorder text-factory-paper text-xs flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-factory-muted mt-0.5" />
                       <div>
-                        <span className="font-bold block text-emerald-300">All Packs Extracted & Submitted</span>
-                        <span className="text-[11px] text-emerald-200/90 block mt-0.5">
+                        <span className="font-bold block text-factory-paper">All Packs Extracted & Submitted</span>
+                        <span className="text-[11px] text-factory-muted block mt-0.5">
                           All finished shoelaces ({selectedBatch.finished_output_kg || '0.00'} KG) from batch {selectedBatch.batch_number} have already been packed into {selectedBatch.bag_count || 0} store sacks. No more packs can be extracted from this batch.
                         </span>
                       </div>
@@ -2061,7 +2066,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       disabled={isBatchFullyPacked}
                       value={bagWeight}
                       onChange={(e) => setBagWeight(e.target.value)}
-                      className={`w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-1.5 text-factory-paper font-semibold text-sm focus:outline-none focus:border-emerald-400 font-mono ${isBatchFullyPacked ? 'opacity-50 cursor-not-allowed bg-factory-darkBorder/20' : ''
+                      className={`w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-1.5 text-factory-paper font-semibold text-sm focus:outline-none focus:border-factory-amber font-mono ${isBatchFullyPacked ? 'opacity-50 cursor-not-allowed bg-factory-darkBorder/20' : ''
                         }`}
                       required
                     />
@@ -2079,7 +2084,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       disabled={isBatchFullyPacked}
                       value={packStoreLocation}
                       onChange={(e) => setPackStoreLocation(e.target.value)}
-                      className={`w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper focus:outline-none focus:border-emerald-400 text-xs ${isBatchFullyPacked ? 'opacity-50 cursor-not-allowed bg-factory-darkBorder/20' : ''
+                      className={`w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-2.5 py-1.5 text-factory-paper focus:outline-none focus:border-factory-amber text-xs ${isBatchFullyPacked ? 'opacity-50 cursor-not-allowed bg-factory-darkBorder/20' : ''
                         }`}
                       required
                     />
@@ -2097,14 +2102,14 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       type="submit"
                       disabled={submitting || isBatchFullyPacked}
                       className={`w-full sm:w-auto px-4 py-1.5 rounded-lg font-semibold flex items-center justify-center gap-2 shadow text-xs ${isBatchFullyPacked
-                          ? 'bg-factory-darkBorder/50 text-factory-muted/60 border border-factory-darkBorder cursor-not-allowed'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+                        ? 'bg-factory-darkBorder/50 text-factory-muted/60 border border-factory-darkBorder cursor-not-allowed'
+                        : 'bg-factory-rust hover:bg-factory-rustLight text-white cursor-pointer'
                         }`}
                       title={isBatchFullyPacked ? 'No more packs can be extracted from this batch' : 'Save Sack to Store'}
                     >
                       {isBatchFullyPacked ? (
                         <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-factory-muted" />
                           No More Packs Can Be Extracted
                         </>
                       ) : (
@@ -2263,7 +2268,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                       step="0.01"
                       value={editFormData.finished_output_kg}
                       onChange={(e) => setEditFormData({ ...editFormData, finished_output_kg: e.target.value })}
-                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-emerald-400 font-bold font-mono text-xs"
+                      className="w-full bg-factory-darkCard border border-factory-darkBorder rounded px-2 py-1 text-factory-paper font-bold font-mono text-xs"
                     />
                   </div>
                 </div>
@@ -2290,7 +2295,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   </div>
                   <div>
                     <span className="text-factory-muted block">Overall Yield:</span>
-                    <span className="font-mono text-emerald-400 font-bold">
+                    <span className="font-mono text-factory-paper font-bold">
                       {editCalculations.yieldPct.toFixed(1)}%
                     </span>
                   </div>
@@ -2515,7 +2520,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <span className="text-[10px] text-factory-muted uppercase tracking-wider block">Yield Efficiency</span>
-                    <span className="text-lg font-mono font-bold text-emerald-400">
+                    <span className="text-lg font-mono font-bold text-factory-paper">
                       {parseFloat(inspectingBatch.yield_percentage || '0').toFixed(1)}%
                     </span>
                   </div>
@@ -2561,7 +2566,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
 
                 {/* Transfer */}
                 <div className="bg-factory-dark p-3.5 rounded-lg border border-factory-darkBorder space-y-2">
-                  <div className="flex items-center justify-between text-blue-400 font-bold text-[11px] uppercase tracking-wider font-mono">
+                  <div className="flex items-center justify-between text-factory-paper font-bold text-[11px] uppercase tracking-wider font-mono">
                     <span>2. Transit B1 → B2</span>
                     <ArrowRightLeft className="w-3.5 h-3.5" />
                   </div>
@@ -2574,7 +2579,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                     </div>
                     <div className="flex justify-between">
                       <span className="text-factory-muted">Destination:</span>
-                      <span className="text-blue-300 font-medium">B2 Tipping</span>
+                      <span className="text-factory-paper font-medium">B2 Tipping</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-factory-muted">Transit Loss:</span>
@@ -2585,7 +2590,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
 
                 {/* Step 3 */}
                 <div className="bg-factory-dark p-3.5 rounded-lg border border-factory-darkBorder space-y-2">
-                  <div className="flex items-center justify-between text-emerald-400 font-bold text-[11px] uppercase tracking-wider font-mono">
+                  <div className="flex items-center justify-between text-factory-paper font-bold text-[11px] uppercase tracking-wider font-mono">
                     <span>3. Stored Goods</span>
                     <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
@@ -2598,7 +2603,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                     </div>
                     <div className="flex justify-between">
                       <span className="text-factory-muted">Finished Laces:</span>
-                      <span className="font-mono font-bold text-emerald-400">{inspectingBatch.finished_output_kg} KG</span>
+                      <span className="font-mono font-bold text-factory-paper">{inspectingBatch.finished_output_kg} KG</span>
                     </div>
                     <div className="flex justify-between text-factory-crimson">
                       <span>Tip & Cut Waste:</span>
@@ -2624,7 +2629,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   <div className="bg-factory-darkCard p-2.5 rounded border border-factory-darkBorder">
                     <span className="text-factory-muted block text-[10px]">Acetone Solvent</span>
                     <span className="font-semibold text-factory-paper block">Industrial Acetone</span>
-                    <span className="font-mono text-blue-400">{inspectingBatch.acetone_used || '0.00'} Liters</span>
+                    <span className="font-mono text-factory-paper">{inspectingBatch.acetone_used || '0.00'} Liters</span>
                   </div>
                   <div className="bg-factory-darkCard p-2.5 rounded border border-factory-darkBorder">
                     <span className="text-factory-muted block text-[10px]">Film Roll (Aglet Wrap)</span>
@@ -2638,7 +2643,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
               {inspectingBatch.bags_list && inspectingBatch.bags_list.length > 0 && (
                 <div className="bg-factory-dark p-3.5 rounded-lg border border-factory-darkBorder space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-factory-paper uppercase tracking-wider flex items-center gap-1.5">
                       <Package className="w-3.5 h-3.5" />
                       Sacks Shipped to Store ({inspectingBatch.bags_list.length} Sacks • {inspectingBatch.total_packed_kg || inspectingBatch.finished_output_kg} KG)
                     </span>
@@ -2647,8 +2652,8 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         Remaining to Pack: {inspectingBatch.remaining_unpacked_kg} KG
                       </span>
                     ) : (
-                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span className="text-[10px] text-factory-muted font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-factory-muted" />
                         Fully Packed & Submitted (0.00 KG Unpacked)
                       </span>
                     )}
@@ -2662,7 +2667,7 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-right font-mono">
-                            <span className="text-emerald-400 font-bold">{bag.weight_kg} KG</span>
+                            <span className="text-factory-paper font-bold">{bag.weight_kg} KG</span>
                             <div className="text-[9px] text-factory-muted">{bag.status}</div>
                           </div>
                           {bag.status !== 'DISPATCHED' && (
@@ -2693,13 +2698,13 @@ export const ProductionView: React.FC<ProductionViewProps> = ({ initialTab = 'al
                   </div>
                   <div>
                     <span className="text-factory-muted text-[10px] uppercase block">Net Output Ready</span>
-                    <span className="font-mono font-bold text-emerald-400 text-sm">
+                    <span className="font-mono font-bold text-factory-paper text-sm">
                       {inspectingBatch.finished_output_kg} KG
                     </span>
                   </div>
                 </div>
                 <div className="text-xs text-factory-muted">
-                  Sacks in Store: <span className="font-semibold text-emerald-400 font-mono">{inspectingBatch.bag_count || 0}</span> sacks ({inspectingBatch.total_packed_kg || '0.00'} KG)
+                  Sacks in Store: <span className="font-semibold text-factory-paper font-mono">{inspectingBatch.bag_count || 0}</span> sacks ({inspectingBatch.total_packed_kg || '0.00'} KG)
                 </div>
               </div>
             </div>

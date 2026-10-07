@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, Factory, Store, Lock, Mail, Eye, EyeOff, 
-  ArrowRight, AlertCircle, Loader2, Sparkles, Building2
+  ArrowRight, AlertCircle, Loader2, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -56,16 +56,30 @@ export const LoginView: React.FC = () => {
       {/* Main Container */}
       <div className="w-full max-w-md sm:max-w-xl z-10 space-y-6">
         {/* Header / Brand */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center p-3 bg-factory-darkCard border border-factory-secondary/40 rounded-2xl shadow-xl shadow-factory-secondary/5 mb-2">
-            <Building2 className="w-10 h-10 text-factory-secondary" />
+        <div className="text-center space-y-3">
+          <div className="relative inline-flex items-center justify-center mb-1 group">
+            {/* Ambient industrial glow */}
+            <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-factory-secondary/40 via-amber-500/20 to-factory-primary/40 blur-xl opacity-75 group-hover:opacity-100 transition duration-700 animate-pulse pointer-events-none" />
+            
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-factory-canvas/90 border-2 border-factory-secondary/70 shadow-2xl shadow-factory-secondary/25 flex items-center justify-center overflow-hidden transition-transform duration-300 hover:scale-105">
+              <img
+                src="/logo.png"
+                alt="Ali Bori Shoe Lace Factory Logo"
+                className="w-full h-full object-contain rounded-full shadow-inner"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading tracking-wide text-factory-cream">
-            ALI BORI SHOE LACE
-          </h1>
-          <p className="text-xs sm:text-sm text-factory-muted max-w-sm mx-auto">
-            Manufacturing & Distribution ERP System
-          </p>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-heading tracking-wider text-factory-cream">
+              ALI BORI SHOE LACE
+            </h1>
+            <p className="text-xs sm:text-sm text-factory-muted max-w-sm mx-auto mt-1">
+              Manufacturing & Distribution ERP System
+            </p>
+          </div>
         </div>
 
         {/* Card */}
@@ -169,13 +183,13 @@ export const LoginView: React.FC = () => {
                 type="button"
                 onClick={() => handleQuickLogin('admin@alibori.com', 'admin123')}
                 disabled={isSubmitting}
-                className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/20 text-left transition-all group cursor-pointer"
+                className="p-3 rounded-xl bg-factory-dark/80 border border-factory-darkBorder hover:border-factory-darkBorder/80 hover:bg-factory-darkCard text-left transition-all group cursor-pointer"
               >
-                <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
-                  <ShieldCheck className="w-4 h-4 shrink-0 text-purple-400 group-hover:scale-110 transition-transform" />
+                <div className="flex items-center gap-2 text-factory-paper font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-factory-amber group-hover:scale-110 transition-transform" />
                   <span>Super Admin</span>
                 </div>
-                <div className="text-[10px] text-purple-200/70 mt-1 line-clamp-2">
+                <div className="text-[10px] text-factory-muted mt-1 line-clamp-2">
                   Full control: all modules, payroll, users & settings
                 </div>
               </button>
@@ -185,13 +199,13 @@ export const LoginView: React.FC = () => {
                 type="button"
                 onClick={() => handleQuickLogin('factory@alibori.com', 'factory123')}
                 disabled={isSubmitting}
-                className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 text-left transition-all group cursor-pointer"
+                className="p-3 rounded-xl bg-factory-dark/80 border border-factory-darkBorder hover:border-factory-darkBorder/80 hover:bg-factory-darkCard text-left transition-all group cursor-pointer"
               >
-                <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
-                  <Factory className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+                <div className="flex items-center gap-2 text-factory-paper font-bold text-xs">
+                  <Factory className="w-4 h-4 shrink-0 text-factory-paper group-hover:scale-110 transition-transform" />
                   <span>Factory Monitor</span>
                 </div>
-                <div className="text-[10px] text-amber-200/70 mt-1 line-clamp-2">
+                <div className="text-[10px] text-factory-muted mt-1 line-clamp-2">
                   Production batches, dispatches, raw materials
                 </div>
               </button>
@@ -201,13 +215,13 @@ export const LoginView: React.FC = () => {
                 type="button"
                 onClick={() => handleQuickLogin('store@alibori.com', 'store123')}
                 disabled={isSubmitting}
-                className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 text-left transition-all group cursor-pointer"
+                className="p-3 rounded-xl bg-factory-dark/80 border border-factory-darkBorder hover:border-factory-darkBorder/80 hover:bg-factory-darkCard text-left transition-all group cursor-pointer"
               >
-                <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs">
-                  <Store className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <div className="flex items-center gap-2 text-factory-paper font-bold text-xs">
+                  <Store className="w-4 h-4 shrink-0 text-factory-paper group-hover:scale-110 transition-transform" />
                   <span>Store / Shop</span>
                 </div>
-                <div className="text-[10px] text-emerald-200/70 mt-1 line-clamp-2">
+                <div className="text-[10px] text-factory-muted mt-1 line-clamp-2">
                   Finished sacks, place orders & stock requests
                 </div>
               </button>

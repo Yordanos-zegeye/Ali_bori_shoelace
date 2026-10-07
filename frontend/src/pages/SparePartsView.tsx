@@ -161,7 +161,7 @@ export const SparePartsView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Low Stock Alerts
           </div>
-          <div className={`text-2xl font-bold font-mono mt-1 ${lowStockCount > 0 ? 'text-factory-crimson' : 'text-emerald-400'}`}>
+          <div className={`text-2xl font-bold font-mono mt-1 ${lowStockCount > 0 ? 'text-factory-crimson' : 'text-factory-paper'}`}>
             {lowStockCount}
           </div>
           <div className="text-xs text-factory-muted mt-1">Below minimum reorder point</div>
@@ -171,7 +171,7 @@ export const SparePartsView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Inventory Valuation (ETB)
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono text-factory-paper mt-1">
             {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
           </div>
           <div className="text-xs text-factory-muted mt-1">Total replacement value</div>
@@ -259,7 +259,7 @@ export const SparePartsView: React.FC = () => {
                         {sp.place || sp.room || 'Workshop Shelf'}
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-sm">
-                        <span className={sp.is_low_stock ? 'text-factory-crimson' : 'text-emerald-400'}>
+                        <span className={sp.is_low_stock ? 'text-factory-crimson' : 'text-factory-paper'}>
                           {qty}
                         </span>
                       </td>
@@ -276,7 +276,7 @@ export const SparePartsView: React.FC = () => {
                             REORDER
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-factory-dark text-factory-muted border border-factory-darkBorder">
                             HEALTHY
                           </span>
                         )}
@@ -328,7 +328,7 @@ export const SparePartsView: React.FC = () => {
             <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder text-xs space-y-1">
               <div className="text-factory-muted">Selected Component:</div>
               <div className="font-mono font-bold text-factory-amber">{selectedSpare.part_code} - {selectedSpare.name}</div>
-              <div className="text-emerald-400 font-mono">Current Quantity: {selectedSpare.quantity}</div>
+              <div className="text-factory-paper font-mono">Current Quantity: {selectedSpare.quantity}</div>
             </div>
 
             <form onSubmit={handleRestock} className="space-y-4 text-xs">

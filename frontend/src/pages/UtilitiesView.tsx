@@ -79,7 +79,11 @@ export const UtilitiesView: React.FC = () => {
                     <div className="text-[11px] text-factory-muted font-mono">{item.equipment_type}</div>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${
+                  item.status === 'OFFLINE' || item.status === 'CRITICAL' || item.status === 'MAINTENANCE'
+                    ? 'text-red-500 bg-red-500/10 border-red-500/20'
+                    : 'text-factory-paper bg-factory-dark border-factory-darkBorder'
+                }`}>
                   {item.status || 'ACTIVE'}
                 </span>
               </div>

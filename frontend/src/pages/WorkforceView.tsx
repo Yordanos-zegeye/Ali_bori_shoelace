@@ -133,7 +133,7 @@ export const WorkforceView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Monthly Base Payroll
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono text-factory-cream mt-1">
             {totalPayrollBaseline.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
           </div>
           <div className="text-xs text-factory-muted mt-1">Before attendance deductions & OT</div>
@@ -206,7 +206,7 @@ export const WorkforceView: React.FC = () => {
                     <td className="py-3.5 px-4 text-factory-paper">
                       {emp.work_room || 'Shop Floor'}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
+                    <td className="py-3.5 px-4 font-mono font-bold text-factory-paper">
                       {parseFloat(emp.base_salary).toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                     </td>
                     <td className="py-3.5 px-4 font-mono">
@@ -215,7 +215,7 @@ export const WorkforceView: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-factory-dark text-factory-cream border border-factory-darkBorder">
                         {emp.employment_status || 'ACTIVE'}
                       </span>
                     </td>

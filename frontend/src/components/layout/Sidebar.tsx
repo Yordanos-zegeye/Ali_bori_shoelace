@@ -130,15 +130,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const getRoleLabel = () => {
     switch (role) {
       case 'super_admin':
-        return { label: 'Super Admin', desc: 'Full Access Granted', color: 'text-purple-400' };
+        return { label: 'Super Admin', desc: 'Full Access Granted', color: 'text-factory-cream' };
       case 'factory_monitor':
-        return { label: 'Factory Monitor', desc: 'Production & Dispatches', color: 'text-amber-400' };
+        return { label: 'Factory Monitor', desc: 'Production & Dispatches', color: 'text-factory-secondary' };
       case 'store':
       default:
         return {
           label: user?.customer_name || 'Customer / Shop',
           desc: user?.customer_code ? `Account: ${user.customer_code}` : (user?.store_name || 'Retail Wholesale Client'),
-          color: 'text-emerald-400'
+          color: 'text-factory-paper'
         };
     }
   };

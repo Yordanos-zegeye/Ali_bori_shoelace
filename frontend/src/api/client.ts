@@ -1,68 +1,49 @@
-const resolveApiBaseUrl = (): string => {
-  const rawUrl = (
-    import.meta.env.VITE_API_BASE_URL
-  ).trim();
-  // Strip trailing slashes
-  const cleanUrl = rawUrl.replace(/\/+$/, '');
-  // Ensure /api/v1 is present
-  if (cleanUrl.endsWith('/api/v1')) {
-    return cleanUrl;
-  }
-  return `${cleanUrl}/api/v1`;
-};
-export const API_BASE_URL = resolveApiBaseUrl();
+import { handleSupabaseRequest } from './supabaseAdapter';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
+
+export { supabase, isSupabaseConfigured };
+
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const method = (options.method || 'GET').toUpperCase() as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  let body: any = undefined;
 
-  const headers = new Headers(options.headers || {});
-  if (!(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  // Attach JWT Bearer token if present
-  const token = localStorage.getItem('alibori_access_token');
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorData: any = {};
-    try {
-      errorData = await response.json();
-    } catch {
-      errorData = { detail: response.statusText };
+  if (options.body) {
+    if (typeof options.body === 'string') {
+      try {
+        body = JSON.parse(options.body);
+      } catch {
+        body = options.body;
+      }
+    } else {
+      body = options.body;
     }
-    const message =
-      errorData.detail ||
-      errorData.error ||
-      errorData.message ||
-      (typeof errorData === 'string' ? errorData : `Request failed with status ${response.status}`);
-    const err = new Error(message);
-    (err as any).data = errorData;
-    (err as any).status = response.status;
-    throw err;
   }
 
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  const text = await response.text();
-  return text ? JSON.parse(text) : ({} as T);
+  // Route request through our Supabase adapter layer
+  return handleSupabaseRequest<T>(method, endpoint, body);
 }
 
 export const api = {
   get: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: 'GET' }),
-  post: <T>(endpoint: string, body?: any) => apiRequest<T>(endpoint, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) }),
-  put: <T>(endpoint: string, body?: any) => apiRequest<T>(endpoint, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) }),
-  patch: <T>(endpoint: string, body?: any) => apiRequest<T>(endpoint, { method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) }),
+  post: <T>(endpoint: string, body?: any) =>
+    apiRequest<T>(endpoint, {
+      method: 'POST',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    }),
+  put: <T>(endpoint: string, body?: any) =>
+    apiRequest<T>(endpoint, {
+      method: 'PUT',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    }),
+  patch: <T>(endpoint: string, body?: any) =>
+    apiRequest<T>(endpoint, {
+      method: 'PATCH',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    }),
   delete: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: 'DELETE' }),
 };

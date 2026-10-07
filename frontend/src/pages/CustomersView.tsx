@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, Plus, Search, DollarSign, AlertTriangle, 
+import {
+  Users, Plus, Search, DollarSign, AlertTriangle,
   CheckCircle2, RefreshCw, Phone, MapPin, ShieldAlert
 } from 'lucide-react';
 import { api } from '../api/client';
@@ -118,7 +118,7 @@ export const CustomersView: React.FC = () => {
               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              + Register New Customer
+              Register New Customer
             </button>
           )}
         </div>
@@ -163,7 +163,7 @@ export const CustomersView: React.FC = () => {
             <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
               Available Credit to Order
             </div>
-            <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+            <div className="text-2xl font-bold font-mono text-factory-cream mt-1">
               {myAvailable.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
             </div>
             <div className="text-xs text-factory-muted mt-1">Remaining allowance ({myUtil.toFixed(0)}% used)</div>
@@ -195,7 +195,7 @@ export const CustomersView: React.FC = () => {
             <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider">
               Near Credit Limit (&gt;80%)
             </div>
-            <div className={`text-2xl font-bold mt-1 ${highRiskCustomers.length > 0 ? 'text-factory-amber' : 'text-emerald-400'}`}>
+            <div className={`text-2xl font-bold mt-1 ${highRiskCustomers.length > 0 ? 'text-red-500' : 'text-factory-paper'}`}>
               {highRiskCustomers.length}
             </div>
             <div className="text-xs text-factory-muted mt-1">High credit risk accounts</div>
@@ -211,7 +211,7 @@ export const CustomersView: React.FC = () => {
           placeholder="Search customer name, code, or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 bg-factory-darkCard border border-factory-darkBorder rounded-lg text-xs text-factory-paper placeholder-factory-muted focus:outline-none focus:border-factory-amber"
+          className="w-full pl-9 pr-4 py-2 bg-factory-darkCard border border-factory-darkBorder rounded-lg text-xs text-factory-paper placeholder-factory-muted focus:outline-none focus:border-factory-secondary"
         />
       </div>
 
@@ -235,7 +235,7 @@ export const CustomersView: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-factory-muted">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-factory-amber" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-factory-secondary" />
                     Loading customer accounts...
                   </td>
                 </tr>
@@ -252,7 +252,7 @@ export const CustomersView: React.FC = () => {
                   const util = c.credit_utilization_percent || (limit > 0 ? (outstanding / limit) * 100 : 0);
                   return (
                     <tr key={c.id} className="hover:bg-factory-darkBorder/20 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-factory-amber">
+                      <td className="py-3.5 px-4 font-mono font-bold text-factory-paper">
                         {c.customer_code}
                       </td>
                       <td className="py-3.5 px-4 font-medium text-factory-paper">
@@ -269,7 +269,7 @@ export const CustomersView: React.FC = () => {
                         {limit.toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold">
-                        <span className={outstanding > 0 ? 'text-factory-crimson' : 'text-emerald-400'}>
+                        <span className={outstanding > 0 ? 'text-red-500' : 'text-factory-paper'}>
                           {outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                         </span>
                       </td>
@@ -277,9 +277,7 @@ export const CustomersView: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <div className="w-20 h-2 bg-factory-dark rounded-full overflow-hidden border border-factory-darkBorder">
                             <div
-                              className={`h-full ${
-                                util >= 90 ? 'bg-factory-crimson' : util >= 60 ? 'bg-factory-amber' : 'bg-emerald-500'
-                              }`}
+                              className={`h-full ${util >= 90 ? 'bg-red-500' : 'bg-factory-secondary'}`}
                               style={{ width: `${Math.min(100, util)}%` }}
                             />
                           </div>
@@ -287,7 +285,7 @@ export const CustomersView: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-factory-dark text-factory-paper border border-factory-darkBorder">
                           ACTIVE
                         </span>
                       </td>

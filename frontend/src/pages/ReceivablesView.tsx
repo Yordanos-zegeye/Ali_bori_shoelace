@@ -84,7 +84,7 @@ export const ReceivablesView: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-factory-darkCard p-5 rounded-xl border border-factory-darkBorder">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="p-2 rounded-lg bg-factory-secondary/15 text-factory-secondary">
               <DollarSign className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
@@ -111,7 +111,7 @@ export const ReceivablesView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Unpaid Receivables Balance
           </div>
-          <div className="text-2xl font-bold font-mono text-factory-crimson mt-1">
+          <div className="text-2xl font-bold font-mono text-red-500 mt-1">
             {totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
           </div>
           <div className="text-xs text-factory-muted mt-1">Total pending cash collection</div>
@@ -121,7 +121,7 @@ export const ReceivablesView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Collected Settlements
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono text-factory-cream mt-1">
             {totalSettled.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
           </div>
           <div className="text-xs text-factory-muted mt-1">Total payments received to date</div>
@@ -131,7 +131,7 @@ export const ReceivablesView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Overdue Accounts
           </div>
-          <div className={`text-2xl font-bold font-mono mt-1 ${overdueCount > 0 ? 'text-factory-amber' : 'text-emerald-400'}`}>
+          <div className={`text-2xl font-bold font-mono mt-1 ${overdueCount > 0 ? 'text-red-500' : 'text-factory-paper'}`}>
             {overdueCount}
           </div>
           <div className="text-xs text-factory-muted mt-1">Invoices past agreed credit terms</div>
@@ -212,11 +212,11 @@ export const ReceivablesView: React.FC = () => {
                       <td className="py-3.5 px-4 font-mono text-factory-paper">
                         {parseFloat(rec.original_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-emerald-400">
+                      <td className="py-3.5 px-4 font-mono text-factory-paper">
                         {parseFloat(rec.amount_paid || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-sm">
-                        <span className={rem > 0 ? 'text-factory-crimson' : 'text-emerald-400'}>
+                        <span className={rem > 0 ? 'text-red-500' : 'text-factory-paper'}>
                           {rem.toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                         </span>
                       </td>
@@ -227,12 +227,12 @@ export const ReceivablesView: React.FC = () => {
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider ${
                             rec.status === 'SETTLED'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              ? 'bg-factory-dark text-factory-cream border border-factory-darkBorder'
                               : rec.status === 'PARTIAL'
-                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              ? 'bg-factory-dark text-factory-paper border border-factory-darkBorder'
                               : rec.status === 'OVERDUE'
-                              ? 'bg-factory-crimson/20 text-factory-crimson border border-factory-crimson/30'
-                              : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
+                              ? 'bg-red-500/10 text-red-500 border border-red-500/30'
+                              : 'bg-factory-dark text-factory-secondary border border-factory-darkBorder'
                           }`}
                         >
                           {rec.status}
@@ -246,9 +246,9 @@ export const ReceivablesView: React.FC = () => {
                               setPaymentAmount(rem.toFixed(2));
                               setPaymentReference(`CBE-${Date.now().toString().slice(-6)}`);
                             }}
-                            className="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow"
+                            className="px-3 py-1 bg-factory-secondary/15 hover:bg-factory-secondary/25 text-factory-paper border border-factory-secondary/30 rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow"
                           >
-                            <ArrowDownLeft className="w-3.5 h-3.5" />
+                            <ArrowDownLeft className="w-3.5 h-3.5 text-factory-secondary" />
                             Collect Payment
                           </button>
                         )}
@@ -274,7 +274,7 @@ export const ReceivablesView: React.FC = () => {
           >
             <div className="flex justify-between items-center border-b border-factory-darkBorder pb-3">
               <h2 className="text-base font-bold font-heading text-factory-paper flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <DollarSign className="w-4 h-4 text-factory-secondary" />
                 Collect Customer Payment
               </h2>
               <button
@@ -288,9 +288,9 @@ export const ReceivablesView: React.FC = () => {
             <div className="bg-factory-dark p-3 rounded-lg border border-factory-darkBorder text-xs space-y-1">
               <div className="text-factory-muted">Customer:</div>
               <div className="font-bold text-factory-paper text-sm">{selectedReceivable.customer_name}</div>
-              <div className="text-factory-amber font-mono">Invoice Order: {selectedReceivable.order_number}</div>
-              <div className="text-factory-crimson font-mono font-bold mt-1">
-                Outstanding Balance: {parseFloat(selectedReceivable.remaining_amount).toFixed(2)} ETB
+              <div className="text-factory-secondary font-mono">Invoice Order: {selectedReceivable.order_number}</div>
+              <div className="text-red-500 font-mono font-bold mt-1">
+                Outstanding Balance: {parseFloat(selectedReceivable.remaining_amount || '0').toFixed(2)} ETB
               </div>
             </div>
 
@@ -304,7 +304,7 @@ export const ReceivablesView: React.FC = () => {
                   max={parseFloat(selectedReceivable.remaining_amount)}
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-mono font-bold text-sm focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-mono font-bold text-sm focus:outline-none focus:border-factory-secondary"
                   required
                 />
                 <p className="text-[11px] text-factory-muted mt-1">
@@ -317,7 +317,7 @@ export const ReceivablesView: React.FC = () => {
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper focus:outline-none focus:border-factory-secondary"
                   required
                 >
                   <option value="BANK_TRANSFER">Bank Transfer (CBE / Awash / Telebirr)</option>
@@ -332,7 +332,7 @@ export const ReceivablesView: React.FC = () => {
                   type="text"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
-                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-mono focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-mono focus:outline-none focus:border-factory-secondary"
                   required
                 />
               </div>
@@ -348,7 +348,7 @@ export const ReceivablesView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold flex items-center justify-center gap-2 shadow cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg font-semibold flex items-center justify-center gap-2 shadow cursor-pointer"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Confirm Collection

@@ -136,7 +136,7 @@ export const SettingsView: React.FC = () => {
         {/* Finished Goods Packaging Constraints */}
         <div className="bg-factory-darkCard border border-factory-darkBorder rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2 border-b border-factory-darkBorder pb-3">
-            <Package className="w-4 h-4 text-emerald-400" />
+            <Package className="w-4 h-4 text-factory-paper" />
             <h2 className="text-sm font-bold font-heading text-factory-paper">
               Finished Shoe Lace Sack Weight Rules
             </h2>
@@ -151,7 +151,7 @@ export const SettingsView: React.FC = () => {
                 disabled
                 className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-semibold opacity-80 cursor-not-allowed"
               />
-              <p className="text-[11px] text-emerald-400 mt-1">✓ Factory Rule: Sacks must weigh at least 25.00 KG</p>
+              <p className="text-[11px] text-factory-muted mt-1">✓ Factory Rule: Sacks must weigh at least 25.00 KG</p>
             </div>
             <div>
               <label className="block text-factory-muted mb-1 font-medium">Maximum Sack Weight (KG)</label>
@@ -162,7 +162,7 @@ export const SettingsView: React.FC = () => {
                 disabled
                 className="w-full bg-factory-dark border border-factory-darkBorder rounded-lg px-3 py-2 text-factory-paper font-semibold opacity-80 cursor-not-allowed"
               />
-              <p className="text-[11px] text-emerald-400 mt-1">✓ Factory Rule: Sacks cannot weigh more than 40.00 KG</p>
+              <p className="text-[11px] text-factory-muted mt-1">✓ Factory Rule: Sacks cannot weigh more than 40.00 KG</p>
             </div>
           </div>
         </div>

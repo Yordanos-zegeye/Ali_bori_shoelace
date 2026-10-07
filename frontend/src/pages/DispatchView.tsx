@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowUpRight, Plus, Search, Filter, AlertTriangle, 
+import {
+  ArrowUpRight, Plus, Search, Filter, AlertTriangle,
   DollarSign, Package, User, Calendar, CheckCircle2, RefreshCw, Lock
 } from 'lucide-react';
 import { api } from '../api/client';
@@ -172,7 +172,7 @@ export const DispatchView: React.FC = () => {
             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-factory-rust/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            {isStore ? '+ Place New Order' : '+ New Customer Dispatch'}
+            {isStore ? 'Place New Order' : 'New Customer Dispatch'}
           </button>
         </div>
       </div>
@@ -203,7 +203,7 @@ export const DispatchView: React.FC = () => {
           <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
             Gross Sales Value
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono text-factory-paper mt-1">
             {totalSalesEtb.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
           </div>
           <div className="text-xs text-factory-muted mt-1">Revenue generated</div>
@@ -262,13 +262,7 @@ export const DispatchView: React.FC = () => {
                       {order.customer_name}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          order.payment_mode === 'CASH'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-factory-amber/10 text-factory-amber border border-factory-amber/20'
-                        }`}
-                      >
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-factory-dark text-factory-paper border border-factory-darkBorder">
                         {order.payment_mode}
                       </span>
                     </td>
@@ -279,18 +273,17 @@ export const DispatchView: React.FC = () => {
                       {parseFloat(order.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
                     </td>
                     <td className="py-3.5 px-4 font-mono text-[11px]">
-                      <div className="text-emerald-400">Paid: {parseFloat(order.amount_paid || '0').toFixed(2)}</div>
+                      <div className="text-factory-paper">Paid: {parseFloat(order.amount_paid || '0').toFixed(2)}</div>
                       <div className="text-factory-crimson">Bal: {parseFloat(order.outstanding_amount || '0').toFixed(2)}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider ${
-                          order.status === 'SETTLED'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider ${order.status === 'SETTLED'
+                            ? 'bg-factory-dark text-factory-muted border border-factory-darkBorder'
                             : order.status === 'PARTIAL'
-                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                            : 'bg-factory-amber/20 text-factory-amber border border-factory-amber/30'
-                        }`}
+                              ? 'bg-factory-dark text-factory-paper border border-factory-darkBorder'
+                              : 'bg-factory-crimson/20 text-factory-crimson border border-factory-crimson/30'
+                          }`}
                       >
                         {order.status}
                       </span>
@@ -379,22 +372,20 @@ export const DispatchView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPaymentMode('CREDIT')}
-                      className={`flex-1 py-2 rounded-lg font-mono font-medium transition-colors ${
-                        paymentMode === 'CREDIT'
+                      className={`flex-1 py-2 rounded-lg font-mono font-medium transition-colors ${paymentMode === 'CREDIT'
                           ? 'bg-factory-rust text-white shadow'
                           : 'bg-factory-dark border border-factory-darkBorder text-factory-muted hover:text-factory-paper'
-                      }`}
+                        }`}
                     >
                       CREDIT
                     </button>
                     <button
                       type="button"
                       onClick={() => setPaymentMode('CASH')}
-                      className={`flex-1 py-2 rounded-lg font-mono font-medium transition-colors ${
-                        paymentMode === 'CASH'
-                          ? 'bg-emerald-600 text-white shadow'
+                      className={`flex-1 py-2 rounded-lg font-mono font-medium transition-colors ${paymentMode === 'CASH'
+                          ? 'bg-factory-rust text-white shadow'
                           : 'bg-factory-dark border border-factory-darkBorder text-factory-muted hover:text-factory-paper'
-                      }`}
+                        }`}
                     >
                       CASH ON DELIVERY
                     </button>
@@ -443,9 +434,8 @@ export const DispatchView: React.FC = () => {
                               setSelectedBagIds([...selectedBagIds, bag.id]);
                             }
                           }}
-                          className={`p-2 rounded cursor-pointer flex items-center justify-between transition-colors ${
-                            isSelected ? 'bg-factory-rust/20 border border-factory-rust/40' : 'hover:bg-factory-darkCard'
-                          }`}
+                          className={`p-2 rounded cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-factory-rust/20 border border-factory-rust/40' : 'hover:bg-factory-darkCard'
+                            }`}
                         >
                           <div className="flex items-center gap-2">
                             <input
@@ -457,7 +447,7 @@ export const DispatchView: React.FC = () => {
                             <span className="font-mono font-bold text-factory-paper">{bag.bag_id}</span>
                             <span className="text-factory-muted text-[11px] truncate max-w-xs">{bag.product_name}</span>
                           </div>
-                          <div className="font-mono font-bold text-emerald-400">
+                          <div className="font-mono font-bold text-factory-paper">
                             {parseFloat(bag.weight_kg).toFixed(2)} KG
                           </div>
                         </div>

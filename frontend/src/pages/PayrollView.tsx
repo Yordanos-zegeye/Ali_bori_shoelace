@@ -104,7 +104,7 @@ export const PayrollView: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-factory-darkCard p-5 rounded-xl border border-factory-darkBorder">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="p-2 rounded-lg bg-factory-dark border border-factory-darkBorder text-factory-amber">
               <DollarSign className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-bold font-heading text-factory-paper">
@@ -135,7 +135,7 @@ export const PayrollView: React.FC = () => {
             <button
               onClick={handleCalculatePayroll}
               disabled={calculating}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors shadow shadow-emerald-600/20"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-factory-rust hover:bg-factory-rustLight text-white rounded-lg text-xs font-semibold transition-colors shadow shadow-factory-rust/20"
             >
               {calculating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
               Calculate Payroll
@@ -165,11 +165,11 @@ export const PayrollView: React.FC = () => {
             </div>
             <div>
               <span className="text-factory-muted">Overtime Multiplier:</span>{' '}
-              <span className="text-blue-400 font-bold">{activeConfig.overtime_hourly_multiplier}x</span>
+              <span className="text-factory-paper font-bold">{activeConfig.overtime_hourly_multiplier}x</span>
             </div>
             <div>
               <span className="text-factory-muted">Saturday Shift:</span>{' '}
-              <span className="text-emerald-400 font-bold">{activeConfig.saturday_rate} ETB/day</span>
+              <span className="text-factory-paper font-bold">{activeConfig.saturday_rate} ETB/day</span>
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export const PayrollView: React.FC = () => {
             <div className="text-[11px] font-bold text-factory-muted uppercase tracking-wider font-mono">
               Net Disbursable Salary
             </div>
-            <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+            <div className="text-2xl font-bold font-mono text-factory-paper mt-1">
               {parseFloat(selectedPeriod.total_net_salary || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })} ETB
             </div>
             <div className="text-xs text-factory-muted mt-1">Total approved payout</div>
@@ -264,20 +264,20 @@ export const PayrollView: React.FC = () => {
                       {parseFloat(slip.base_salary).toFixed(2)} ETB
                     </td>
                     <td className="py-3.5 px-4 font-mono">
-                      <span className="text-emerald-400 font-bold">{slip.present_days}P</span>
+                      <span className="text-factory-paper font-bold">{slip.present_days}P</span>
                       <span className="text-factory-muted mx-1">/</span>
                       <span className="text-factory-crimson font-bold">{slip.absent_days}A</span>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-blue-400">
+                    <td className="py-3.5 px-4 font-mono text-factory-paper">
                       +{parseFloat(slip.overtime_pay || '0').toFixed(2)} ETB
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-emerald-400">
+                    <td className="py-3.5 px-4 font-mono text-factory-paper">
                       +{parseFloat(slip.saturday_pay || '0').toFixed(2)} ETB
                     </td>
                     <td className="py-3.5 px-4 font-mono text-factory-crimson">
                       -{parseFloat(slip.absence_deduction || '0').toFixed(2)} ETB
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-sm text-emerald-400">
+                    <td className="py-3.5 px-4 font-mono font-bold text-sm text-factory-paper">
                       {parseFloat(slip.net_salary).toFixed(2)} ETB
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -341,7 +341,7 @@ export const PayrollView: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-factory-muted">
                   <span>Present Working Days:</span>
-                  <span className="text-emerald-400 font-bold">{activeSlip.present_days} / {activeSlip.working_days}</span>
+                  <span className="text-factory-paper font-bold">{activeSlip.present_days} / {activeSlip.working_days}</span>
                 </div>
                 <div className="flex justify-between text-factory-muted">
                   <span>Absent Missed Days:</span>
@@ -349,11 +349,11 @@ export const PayrollView: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-factory-muted">
                   <span>Overtime Pay ({activeSlip.overtime_hours || 0} hrs):</span>
-                  <span className="text-blue-400">+{parseFloat(activeSlip.overtime_pay || '0').toFixed(2)} ETB</span>
+                  <span className="text-factory-paper">+{parseFloat(activeSlip.overtime_pay || '0').toFixed(2)} ETB</span>
                 </div>
                 <div className="flex justify-between text-factory-muted">
                   <span>Saturday Shift Bonus:</span>
-                  <span className="text-emerald-400">+{parseFloat(activeSlip.saturday_pay || '0').toFixed(2)} ETB</span>
+                  <span className="text-factory-paper">+{parseFloat(activeSlip.saturday_pay || '0').toFixed(2)} ETB</span>
                 </div>
                 <div className="flex justify-between text-factory-muted">
                   <span>Absence Rate Deduction:</span>
@@ -363,7 +363,7 @@ export const PayrollView: React.FC = () => {
 
               <div className="border-t border-factory-darkBorder/60 pt-3 flex justify-between items-center text-sm font-bold">
                 <span className="text-factory-paper">NET SALARY PAYABLE:</span>
-                <span className="text-emerald-400 text-base">{parseFloat(activeSlip.net_salary).toFixed(2)} ETB</span>
+                <span className="text-factory-paper text-base">{parseFloat(activeSlip.net_salary).toFixed(2)} ETB</span>
               </div>
             </div>
 

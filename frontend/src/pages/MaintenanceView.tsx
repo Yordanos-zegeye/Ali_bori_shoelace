@@ -124,7 +124,7 @@ export const MaintenanceView: React.FC = () => {
                       {log.technician_name || 'Workshop Mechanic'}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-factory-dark text-factory-muted border border-factory-darkBorder">
                         RESOLVED
                       </span>
                     </td>

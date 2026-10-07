@@ -1,6 +1,6 @@
 # Ali Bori Shoe Lace Factory ERP
 
-> Production-grade, full-stack Enterprise Resource Planning (ERP) platform built for **Ali Bori Shoe Lace Factory**, modernizing and normalizing their 12-sheet operational Excel workbook (`ali bori NEW shoe lace.xlsx`) into a centralized PostgreSQL system on Neon Cloud, paired with an industrial warm leather & amber UI built in React 19, TypeScript, and Vite.
+> Production-grade, full-stack Enterprise Resource Planning (ERP) platform built for **Ali Bori Shoe Lace Factory**, modernizing and normalizing their 12-sheet operational Excel workbook (`ali bori NEW shoe lace.xlsx`) into a cloud-native **Supabase** backend (PostgreSQL, Supabase Auth, Row Level Security, RPC stored procedure engines, and `@supabase/supabase-js`), paired with an industrial warm leather & amber UI built in React 19, TypeScript, and Vite.
 
 ---
 
@@ -32,23 +32,22 @@ graph TB
         Palette[Industrial Warm Leather & Amber Palette]
     end
 
-    subgraph Backend ["Backend (Django 5 + Django REST Framework)"]
-        API[RESTful Endpoints /api/v1/]
-        Engines[Yield Engine, Credit Guard, Payroll Calculator]
-        Notifications[Anti-Fatigue NotificationService]
-    end
-
-    subgraph Database ["PostgreSQL (Neon Cloud in AWS us-east-2)"]
-        DBSchema[(Isolated 'alibori' Schema)]
-        ExcelNorm[(28 Relational Models from 12 Excel Sheets)]
+    subgraph Backend ["Supabase Backend Platform"]
+        Auth[Supabase Auth (JWT & Roles)]
+        PostgREST[PostgREST RESTful Data API]
+        RPC[PostgreSQL Stored Procedures / RPCs]
+        DB[(28+ Relational Schema Tables)]
+        RLS[Row Level Security Policies]
     end
 
     UI --> Client
-    Client --> API
-    API --> Engines
-    Engines --> Notifications
-    Engines --> DBSchema
-    ExcelNorm --> DBSchema
+    UI --> AuthCtx
+    AuthCtx --> Auth
+    Client --> PostgREST
+    Client --> RPC
+    PostgREST --> DB
+    RPC --> DB
+    RLS -. Enforces Security .-> DB
 ```
 
 ---

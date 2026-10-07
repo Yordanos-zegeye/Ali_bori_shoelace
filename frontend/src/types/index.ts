@@ -99,7 +99,7 @@ export interface RawMaterialVariant {
   code: string;
   minimum_stock_kg: string;
   unit_cost: string;
-  total_available_kg: number;
+  total_available_kg?: number | string;
   is_low_stock: boolean;
 }
 
@@ -351,6 +351,60 @@ export interface DashboardMetrics {
     waste_percentage: number;
     yield_percentage: number;
     today_batch_count?: number;
+    is_showing_recent?: boolean;
+    averages?: {
+      daily: {
+        output_kg: number;
+        input_kg: number;
+        waste_kg: number;
+        yield_percentage: number;
+        batch_count: number;
+        active_days_count: number;
+      };
+      weekly: {
+        output_kg: number;
+        input_kg: number;
+        waste_kg: number;
+        yield_percentage: number;
+        batch_count: number;
+        active_weeks_count: number;
+      };
+      monthly: {
+        output_kg: number;
+        input_kg: number;
+        waste_kg: number;
+        yield_percentage: number;
+        batch_count: number;
+        active_months_count: number;
+      };
+    };
+    daily_history?: Array<{
+      date: string;
+      label: string;
+      input_kg: number;
+      finished_kg: number;
+      waste_kg: number;
+      yield_percentage: number;
+      batch_count: number;
+    }>;
+    weekly_history?: Array<{
+      week: string;
+      label: string;
+      input_kg: number;
+      finished_kg: number;
+      waste_kg: number;
+      yield_percentage: number;
+      batch_count: number;
+    }>;
+    monthly_history?: Array<{
+      month: string;
+      label: string;
+      input_kg: number;
+      finished_kg: number;
+      waste_kg: number;
+      yield_percentage: number;
+      batch_count: number;
+    }>;
   };
   wip: {
     building_1_kg: number;
@@ -387,6 +441,14 @@ export interface DashboardMetrics {
     pending_stock_requests: number;
     low_spares_count: number;
   };
+  batches_history?: Array<{
+    batch_number: string;
+    input_kg: number;
+    braided_kg: number;
+    finished_kg: number;
+    waste_kg: number;
+    yield_percentage: number;
+  }>;
 }
 
 export type UserRole = 'super_admin' | 'factory_monitor' | 'store';
